@@ -1,0 +1,109 @@
+# Question bank v1: what get_context must find for each question.
+#
+# `needs` lists the context items an analyst would need to answer correctly. It was written
+# before running the search, from the question alone, so the test is honest.
+# Rules marked `always: true` in knesset_data reach the agent on every question and are
+# only listed here when the question is about them.
+# Test it: make eval-context
+
+- question: כמה הצעות חוק פרטיות עברו בכנסת ה-25?
+  needs: [table.dim_bill, glossary.private_bill, rule.passed_means_third_reading, vq.bills_by_origin_25th_knesset]
+
+- question: What share of government bills become law?
+  needs: [metric.bill_pass_rate, glossary.government_bill, table.dim_bill]
+
+- question: מי המורדים הגדולים בליכוד?
+  needs: [alias.party.likud, glossary.faction_discipline, metric.faction_loyalty_rate, table.fct_vote_result]
+
+- question: כמה פעמים הצביע בן גביר נגד הקואליציה?
+  needs: [alias.person.ben_gvir, table.fct_vote_result, rule.camp_at_the_time, glossary.coalition]
+
+- question: How often did Netanyahu show up to vote in the 25th Knesset?
+  needs: [alias.person.netanyahu, metric.attendance_rate, table.fct_vote_result]
+
+- question: כמה ישיבות קיימה ועדת הכספים השנה?
+  needs: [alias.committee.finance, table.fct_committee_session, metric.committee_sessions, rule.committee_across_knessets]
+
+- question: Which committee worked the most hours last year?
+  needs: [metric.committee_hours, table.fct_committee_session, table.dim_committee]
+
+- question: אילו שרים לא עונים על שאילתות?
+  needs: [glossary.parliamentary_query, metric.query_reply_rate, table.fct_query, vq.queries_by_ministry_24th_knesset]
+
+- question: How long does the Health Ministry take to answer queries?
+  needs: [metric.average_query_reply_days, table.fct_query, table.dim_ministry, glossary.parliamentary_query]
+
+- question: האם האופוזיציה מגישה יותר שאילתות מהקואליציה?
+  needs: [vq.queries_by_camp, table.fct_query, rule.camp_at_the_time]
+
+- question: Which bills passed their preliminary reading but never reached a first reading?
+  needs: [glossary.preliminary_reading, glossary.first_reading, table.fct_bill_reading]
+
+- question: מה החוק שעבר הכי מהר?
+  needs: [vq.fastest_laws, table.dim_bill, glossary.law]
+
+- question: Was Shas in the coalition in 2025?
+  needs: [alias.party.shas, table.fct_coalition_period, rule.camp_at_the_time, glossary.coalition]
+
+- question: אילו סיעות אופוזיציה הצביעו הכי הרבה יחד עם הקואליציה?
+  needs: [table.agg_faction_pair_agreement_month, vq.cross_camp_faction_agreement_25th_knesset, rule.camp_at_the_time]
+
+- question: How often was the coalition split in plenum votes?
+  needs: [metric.coalition_split_rate, table.fct_plenum_vote, vq.votes_that_split_the_coalition]
+
+- question: מי היה יו"ר ועדת החוקה בכנסת ה-25?
+  needs: [alias.committee.constitution, glossary.committee_chair, table.fct_person_role, vq.committee_chairs_25th_knesset]
+
+- question: Who switched parties in the middle of a term?
+  needs: [vq.mks_who_changed_faction, table.fct_faction_membership, glossary.faction]
+
+- question: כמה נשים כיהנו בכל כנסת?
+  needs: [vq.women_mks_per_knesset, table.dim_person]
+
+- question: How many no-confidence votes were held in this Knesset?
+  needs: [glossary.no_confidence, table.fct_plenum_vote, rule.current_knesset]
+
+- question: כמה חוקים עברו בכנסת הנוכחית?
+  needs: [rule.current_knesset, table.dim_bill, glossary.law]
+
+- question: Who proposed the most private bills?
+  needs: [table.fct_bill_initiator, glossary.bill_initiator, glossary.private_bill, vq.top_private_bill_initiators_24th_knesset]
+
+- question: באילו הצעות חוק דנה ועדת החינוך הכי הרבה פעמים?
+  needs: [alias.committee.education, table.fct_committee_session_bill, vq.most_discussed_bills_in_committee]
+
+- question: Do more laws pass right before an election?
+  needs: [vq.pre_election_rush, table.dim_bill]
+
+- question: כמה הצבעות נערכו במליאה אחרי חצות?
+  needs: [table.fct_plenum_vote, rule.date_only_votes, rule.local_time_and_dates]
+
+- question: How did Yesh Atid vote on the last budget vote?
+  needs: [alias.party.yesh_atid, vq.faction_votes_on_a_vote, table.fct_vote_result, table.fct_plenum_vote]
+
+- question: כמה הצעות לסדר היום הגישה מרב מיכאלי?
+  needs: [alias.person.michaeli, glossary.motion_for_agenda, table.fct_agenda]
+
+- question: How many laws did the Knesset pass in 2010?
+  needs: [rule.scope_from_20th_knesset, table.dim_bill]
+
+- question: מי היה שר האוצר בממשלה ה-36?
+  needs: [glossary.minister, glossary.government, table.fct_person_role]
+
+- question: How many committee sessions were closed to the public?
+  needs: [glossary.closed_session, table.fct_committee_session]
+
+- question: כמה ח"כים נעדרו מההצבעה האחרונה?
+  needs: [glossary.vote_result, table.fct_vote_result]
+
+- question: Did Ra'am vote with the Bennett government?
+  needs: [alias.party.raam, alias.person.bennett, table.fct_vote_result, rule.camp_at_the_time]
+
+- question: כמה ישיבות ועדה התקיימו בכל חודש?
+  needs: [vq.monthly_committee_sessions, metric.committee_sessions, table.fct_committee_session]
+
+- question: Which bills were carried over from the previous Knesset?
+  needs: [glossary.continuity, table.dim_bill]
+
+- question: מי ראש האופוזיציה?
+  needs: [glossary.opposition_leader, table.fct_person_role]

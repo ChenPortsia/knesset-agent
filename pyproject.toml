@@ -1,0 +1,21 @@
+[project]
+name = "knesset-agent"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.5,<2",  # the same major version as knesset_data, which writes the file
+    "fastembed>=0.9",  # embeds the question with the model the context was indexed with
+    "pyyaml",
+]
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

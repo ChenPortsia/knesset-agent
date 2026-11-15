@@ -1,6 +1,7 @@
 """get_context: the few context items a question needs, out of hundreds.
 
-Reads the `context` schema that knesset_data builds (`make context`) in warehouse.duckdb:
+Reads the `context` schema that knesset_data builds (`make context`) and publishes
+(`make publish`):
     context.items   every item: glossary, aliases, rules, verified queries, tables, columns, metrics
     context.search  each item's searchable text and embedding, with a keyword index
     context.build   the embedding model the index was built with
@@ -13,21 +14,15 @@ A question gets:
 """
 
 import json
-import os
 from collections import Counter
 from collections.abc import Callable
 from functools import cache
-from pathlib import Path
 from typing import Any
 
 import duckdb
 
-WAREHOUSE = Path(
-    os.environ.get(
-        "KNESSET_WAREHOUSE",
-        Path(__file__).resolve().parents[2] / "knesset_data/data/warehouse/warehouse.duckdb",
-    )
-)
+from tools.db import connect
+
 # How many searched items of each kind a question gets, best first
 QUOTAS = {"table": 4, "glossary": 4, "rule": 3, "metric": 3, "verified_query": 3}
 
@@ -95,13 +90,6 @@ COLUMNS = """
     WHERE kind = 'column' AND (payload ->> 'model') IN $models
     ORDER BY id
 """
-
-
-def connect() -> duckdb.DuckDBPyConnection:
-    """The warehouse, read-only, with keyword search loaded."""
-    con = duckdb.connect(str(WAREHOUSE), read_only=True)
-    con.execute("INSTALL fts; LOAD fts")
-    return con
 
 
 @cache

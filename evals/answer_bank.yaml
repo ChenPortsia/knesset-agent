@@ -1,0 +1,240 @@
+# Answer bank v1: questions with ground truth, for the answer test (milestone 3).
+#
+# Each question has the SQL that gives the true answer: `sql` (written and checked by hand,
+# on the gold schema) or `vq` (a verified query from knesset_data's context).
+# `expect` says what a right answer is when it isn't a number or a list:
+#     clarify       the question is ambiguous: the right answer is a clarifying question
+#     out_of_scope  the data can't answer it: the right answer says so
+# `holdout: true` questions are scored but their failures are never read while tuning.
+# Check that every ground-truth query runs: make eval-truth (V=1 to see the results)
+
+# --- lookups
+- question: Who was the Speaker of the Knesset during the 24th Knesset?
+  category: lookup
+  sql: >
+    SELECT p.full_name, r.start_date, r.finish_date
+    FROM fct_person_role AS r
+    INNER JOIN dim_person AS p ON r.person_id = p.person_id
+    WHERE r.role = 'speaker' AND r.knesset_num = 24
+    ORDER BY r.start_date
+
+- question: מי היה יו"ר ועדת הכספים בכנסת ה-25?
+  category: lookup
+  sql: >
+    SELECT p.full_name, r.start_date, r.finish_date
+    FROM fct_person_role AS r
+    INNER JOIN dim_person AS p ON r.person_id = p.person_id
+    INNER JOIN dim_committee AS c ON r.committee_id = c.committee_id
+    WHERE r.role = 'committee_chair' AND r.knesset_num = 25 AND c.category_name = 'ועדת הכספים'
+      AND c.committee_type = 'ועדה ראשית'
+    ORDER BY r.start_date
+
+- question: How many factions were there in the 25th Knesset?
+  category: lookup
+  sql: SELECT COUNT(*) AS factions FROM dim_faction WHERE knesset_num = 25
+
+- question: מתי התחילה הכנסת ה-24 ומתי היא הסתיימה?
+  category: lookup
+  holdout: true
+  sql: SELECT CAST(start_at AS DATE) AS start_date, CAST(finish_at AS DATE) AS finish_date FROM dim_knesset WHERE knesset_num = 24
+
+# The data has the ministry of a minister's post but not its title, so it can't tell the
+# Minister of Finance from a second minister in the Finance Ministry.
+- question: Which ministers served in the Finance Ministry in the 36th government?
+  category: lookup
+  sql: >
+    SELECT DISTINCT p.full_name
+    FROM fct_person_role AS r
+    INNER JOIN dim_person AS p ON r.person_id = p.person_id
+    WHERE r.role = 'minister' AND r.government_num = 36 AND r.ministry_name LIKE '%האוצר%'
+
+# --- aggregates
+- question: כמה הצעות חוק פרטיות הוגשו בכנסת ה-25, וכמה מהן עברו?
+  category: aggregate
+  sql: >
+    SELECT COUNT(*) AS bills, COUNT(*) FILTER (WHERE is_passed) AS passed
+    FROM dim_bill WHERE knesset_num = 25 AND origin = 'private'
+
+- question: What share of government bills became law in the 20th Knesset?
+  category: aggregate
+  sql: >
+    SELECT COUNT(*) AS bills, COUNT(*) FILTER (WHERE is_passed) AS passed,
+      ROUND(100.0 * COUNT(*) FILTER (WHERE is_passed) / COUNT(*), 1) AS passed_percent
+    FROM dim_bill WHERE knesset_num = 20 AND origin = 'government'
+
+- question: Which 5 MKs initiated the most private bills in the 25th Knesset?
+  category: aggregate
+  sql: >
+    SELECT p.full_name, COUNT(*) AS bills
+    FROM fct_bill_initiator AS i
+    INNER JOIN dim_bill AS b ON i.bill_id = b.bill_id
+    INNER JOIN dim_person AS p ON i.person_id = p.person_id
+    WHERE b.knesset_num = 25 AND b.origin = 'private' AND i.is_initiator
+    GROUP BY p.full_name ORDER BY bills DESC, p.full_name LIMIT 5
+
+- question: מה היה שיעור הנשים בקרב חברי הכנסת בכל כנסת מאז הכנסת ה-20?
+  category: aggregate
+  vq: vq.women_mks_per_knesset
+
+- question: How many bills were stopped in the 24th Knesset?
+  category: aggregate
+  holdout: true
+  sql: SELECT COUNT(*) AS stopped_bills FROM dim_bill WHERE knesset_num = 24 AND outcome = 'stopped'
+
+- question: Which committee held the most sessions in 2024?
+  category: aggregate
+  vq: vq.busiest_committee_2024
+
+- question: כמה ישיבות ועדה בוטלו בכנסת ה-25?
+  category: aggregate
+  sql: SELECT COUNT(*) AS cancelled FROM fct_committee_session WHERE knesset_num = 25 AND status = 'מבוטלת'
+
+- question: How many committee sessions in the 25th Knesset were closed to the public?
+  category: aggregate
+  holdout: true
+  sql: SELECT COUNT(*) AS closed_sessions FROM fct_committee_session WHERE knesset_num = 25 AND session_type = 'חסויה'
+
+- question: אילו חוקים עברו הכי מהר מקריאה ראשונה לאישור סופי?
+  category: aggregate
+  vq: vq.fastest_laws
+
+- question: Which bills were discussed in the most committee sessions?
+  category: aggregate
+  vq: vq.most_discussed_bills_in_committee
+
+# --- votes
+- question: כמה הצבעות נערכו במליאה בכנסת ה-24?
+  category: votes
+  sql: SELECT COUNT(*) AS plenum_votes FROM fct_plenum_vote WHERE knesset_num = 24
+
+- question: How many no-confidence motions were voted on in the 25th Knesset, and did any pass?
+  category: votes
+  sql: >
+    SELECT COUNT(*) AS no_confidence_votes, MAX(votes_for) AS most_votes_for,
+      COUNT(*) FILTER (WHERE votes_for >= 61) AS reached_61
+    FROM fct_plenum_vote WHERE knesset_num = 25 AND is_no_confidence AND item_type IS NULL
+
+- question: Which MKs voted least often with their faction's majority in the 25th Knesset?
+  category: votes
+  vq: vq.faction_loyalty_25th_knesset
+
+- question: באיזה שיעור מההצבעות במליאה בכנסת ה-25 השתתף בנימין נתניהו?
+  category: votes
+  sql: >
+    WITH served AS (
+      SELECT r.person_id, MIN(r.vote_date) AS first_vote, MAX(r.vote_date) AS last_vote,
+        COUNT(*) FILTER (WHERE r.took_part) AS votes_taken_part
+      FROM fct_vote_result AS r
+      INNER JOIN dim_person AS p ON r.person_id = p.person_id
+      WHERE r.knesset_num = 25 AND p.full_name = 'בנימין נתניהו'
+      GROUP BY r.person_id
+    )
+    SELECT s.votes_taken_part, COUNT(*) AS votes_held,
+      ROUND(100.0 * s.votes_taken_part / COUNT(*), 1) AS participation_percent
+    FROM served AS s
+    INNER JOIN fct_plenum_vote AS v
+      ON v.knesset_num = 25 AND v.vote_date BETWEEN s.first_vote AND s.last_vote
+    GROUP BY s.votes_taken_part
+
+- question: In how many plenum votes of the 25th Knesset was the coalition split?
+  category: votes
+  sql: >
+    SELECT COUNT(*) FILTER (WHERE is_coalition_split) AS split_votes, COUNT(*) AS votes,
+      ROUND(100.0 * COUNT(*) FILTER (WHERE is_coalition_split) / COUNT(*), 1) AS split_percent
+    FROM fct_plenum_vote WHERE knesset_num = 25
+
+- question: How many plenum votes since 2015 were held between midnight and 6am?
+  category: votes
+  holdout: true
+  sql: >
+    SELECT COUNT(*) AS votes_after_midnight
+    FROM fct_plenum_vote
+    WHERE HOUR(voted_at) < 6 AND CAST(voted_at AS TIME) <> TIME '00:00:00'
+
+- question: אילו סיעות מהאופוזיציה הצביעו הכי הרבה כמו סיעות הקואליציה בכנסת ה-25?
+  category: votes
+  vq: vq.cross_camp_faction_agreement_25th_knesset
+
+- question: Which votes split the coalition the most in the 25th Knesset?
+  category: votes
+  holdout: true
+  vq: vq.votes_that_split_the_coalition
+
+# --- oversight
+- question: Which ministries received the most parliamentary queries in the 24th Knesset, and how fast did they reply?
+  category: oversight
+  vq: vq.queries_by_ministry_24th_knesset
+
+- question: מה שיעור השאילתות שנענו בכנסת ה-25?
+  category: oversight
+  sql: >
+    SELECT COUNT(*) AS queries, COUNT(*) FILTER (WHERE is_replied) AS replied,
+      ROUND(100.0 * COUNT(*) FILTER (WHERE is_replied) / COUNT(*), 1) AS replied_percent
+    FROM fct_query WHERE knesset_num = 25
+
+- question: What share of parliamentary queries came from opposition MKs in each Knesset?
+  category: oversight
+  vq: vq.queries_by_camp
+
+- question: Which 5 MKs submitted the most parliamentary queries in the 25th Knesset?
+  category: oversight
+  sql: >
+    SELECT p.full_name, COUNT(*) AS queries
+    FROM fct_query AS q
+    INNER JOIN dim_person AS p ON q.person_id = p.person_id
+    WHERE q.knesset_num = 25
+    GROUP BY p.full_name ORDER BY queries DESC, p.full_name LIMIT 5
+
+- question: כמה הצעות לסדר היום הוגשו בכנסת ה-25?
+  category: oversight
+  holdout: true
+  sql: SELECT COUNT(*) AS motions FROM fct_agenda WHERE knesset_num = 25
+
+# --- trends
+- question: How many committee sessions were held in each month of 2024?
+  category: trend
+  sql: >
+    SELECT MONTH(session_date) AS month, COUNT(*) AS sessions
+    FROM fct_committee_session
+    WHERE YEAR(session_date) = 2024 AND status <> 'מבוטלת'
+    GROUP BY 1 ORDER BY 1
+
+- question: כמה חוקים עברו בכל כנסת מאז הכנסת ה-20?
+  category: trend
+  sql: >
+    SELECT knesset_num, COUNT(*) FILTER (WHERE is_passed) AS laws_passed
+    FROM dim_bill GROUP BY knesset_num ORDER BY knesset_num
+
+- question: Has the share of answered parliamentary queries changed from Knesset to Knesset?
+  category: trend
+  vq: vq.query_reply_rate_by_knesset
+
+- question: Which MKs were members of more than one faction within the same Knesset?
+  category: trend
+  holdout: true
+  vq: vq.mks_who_changed_faction
+
+- question: How many laws passed in the last months of each Knesset?
+  category: trend
+  vq: vq.pre_election_rush
+
+# --- the right answer is not a number
+- question: How did they vote on the budget?
+  category: ambiguous
+  expect: clarify
+
+- question: מי הח"כ הכי פעיל?
+  category: ambiguous
+  expect: clarify
+
+- question: How many laws did the Knesset pass in 2010?
+  category: out_of_scope
+  expect: out_of_scope
+
+- question: מה חושב הציבור על הרפורמה המשפטית?
+  category: out_of_scope
+  expect: out_of_scope
+
+- question: What did MKs say in the Finance Committee about the 2025 budget?
+  category: out_of_scope
+  expect: out_of_scope

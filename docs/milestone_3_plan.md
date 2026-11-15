@@ -58,9 +58,13 @@ are milestones 4 to 7. One agent first: it sets the baseline the team has to bea
 10. **Runs are also logged to our own tables**, as `CLAUDE.md` asks: `ops.agent_runs` and
     `ops.agent_steps` in a small local DuckDB file, with `run_id`, `trace_id`, `session_id`,
     `user_id` and `data_version`. Postgres replaces the file at the pilot.
-11. **Claude through the API**, model set in one config value. Start with the most capable
-    model to find the ceiling, then try cheaper ones on the same test and keep the cheapest
-    that still passes.
+11. **Any model, set in one value.** The model is named in `.env` as `provider:model`
+    (`KNESSET_MODEL`), and LangChain loads the matching client, so moving between Gemini and
+    Claude is a one-line change with no code change. We start on Gemini (your credits), and
+    step 10 compares models on the same test.
+12. **The agent has its own database.** knesset_data's `make publish` copies gold and context
+    into `data/published/knesset.duckdb` and stamps it with a data version. The agent opens
+    only that file, read-only, so silver and bronze are out of reach by construction.
 
 ## Repo layout after this milestone
 
@@ -83,9 +87,9 @@ knesset-agent/
 
 | # | Step | Done when |
 | --- | --- | --- |
-| 1 | **Data version** (in knesset_data): `make dbt` stamps each build in a small `gold.build_info` table | the agent can read which build it is answering from |
-| 2 | **`run_sql` and `sample_values`** with their limits | tests show a write, a silver table, two statements and a slow query are all refused |
-| 3 | **Test questions with ground truth**: about 40 structured questions across lookups, aggregates, votes, oversight, trends and ambiguous, each with checked SQL | every ground-truth query runs in CI of the data (like verified queries) |
+| 1 | **Published database with a data version** (in knesset_data): `make publish` | done |
+| 2 | **`run_sql` and `sample_values`** with their limits | done: tests show a write, two statements, a file read and a slow query are all refused |
+| 3 | **Test questions with ground truth**: about 40 structured questions across lookups, aggregates, votes, oversight, trends and ambiguous, each with checked SQL | done: 38 in `evals/answer_bank.yaml`, 7 held out; `make eval-truth` runs them all |
 | 4 | **The agent**: prompt, tools, answer structure, `make ask Q="..."` | it answers the 10 milestone 1 questions by hand-check |
 | 5 | **Langfuse traces and `ops` logging** | a question shows up as one trace and one `agent_runs` row with the same `trace_id` |
 | 6 | **The judge**, checked on 20 hand-graded answers | it agrees with the hand grades on at least 18 |
@@ -117,11 +121,13 @@ missing piece of context, an unclear tool, or a real limit of the data.
 - MetricFlow as a tool, unless step 8 shows it is needed.
 - Postgres and deployment (the pilot).
 
-## What I need from you
+## Keys
 
-1. **An Anthropic API key.** On your Mac it goes in `.env` (never committed). To run the test
-   in this cloud session too, I'd ask for it through the secure credential form.
-2. **A Langfuse account** (cloud, free tier) and its two keys, or tell me to self-host it in
-   Docker instead.
-3. **A spending limit** you're comfortable with for the test runs, so I pick the model and
-   how often to run the full test accordingly.
+All keys live in `.env` on your machine (see `.env.example`); the file is never committed.
+
+| Variable | For |
+| --- | --- |
+| `KNESSET_MODEL` | which model answers, as `provider:model` |
+| `GOOGLE_API_KEY` | Gemini |
+| `ANTHROPIC_API_KEY` | Claude (only when `KNESSET_MODEL` names a Claude model) |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST` | traces |

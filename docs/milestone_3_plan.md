@@ -90,10 +90,10 @@ knesset-agent/
 | 1 | **Published database with a data version** (in knesset_data): `make publish` | done |
 | 2 | **`run_sql` and `sample_values`** with their limits | done: tests show a write, two statements, a file read and a slow query are all refused |
 | 3 | **Test questions with ground truth**: about 40 structured questions across lookups, aggregates, votes, oversight, trends and ambiguous, each with checked SQL | done: 38 in `evals/answer_bank.yaml`, 7 held out; `make eval-truth` runs them all |
-| 4 | **The agent**: prompt, tools, answer structure, `make ask Q="..."` | it answers the 10 milestone 1 questions by hand-check |
-| 5 | **Langfuse traces and `ops` logging** | a question shows up as one trace and one `agent_runs` row with the same `trace_id` |
+| 4 | **The agent**: prompt, tools, answer structure, `make ask Q="..."` | built; answered 5 of 5 trial questions correctly. A full hand-check waits for a key with quota |
+| 5 | **Langfuse traces and `ops` logging** | done: a question is one trace and one `agent_runs` row with the same `trace_id` |
 | 6 | **The judge**, checked on 20 hand-graded answers | it agrees with the hand grades on at least 18 |
-| 7 | **`make eval-answers`**: run the bank, grade, report by category, with cost and time | a baseline score |
+| 7 | **`make eval-answers`**: run the bank, grade, report by category, with cost and time | built; the baseline waits for a key with quota (the free tier allows 20 requests a day) |
 | 8 | **Improve to 80%**: read the failures; fix context first (a rule, a term, a verified query), the prompt second, tools last | at least 80%, and each fix noted |
 | 9 | **`odata_query`** and 3 to 5 freshness questions | the agent uses it only when the warehouse is too old to answer |
 | 10 | **Cheaper models** on the same test | a table of score, cost and time per model; a default chosen |
@@ -130,4 +130,5 @@ All keys live in `.env` on your machine (see `.env.example`); the file is never 
 | `KNESSET_MODEL` | which model answers, as `provider:model` |
 | `GOOGLE_API_KEY` | Gemini |
 | `ANTHROPIC_API_KEY` | Claude (only when `KNESSET_MODEL` names a Claude model) |
-| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST` | traces |
+| `KNESSET_JUDGE_MODEL` | which model grades answers in the test (default: the same) |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` | traces |

@@ -2,11 +2,13 @@
 
 A LangGraph multi-agent system that answers questions about the Knesset, reading the warehouse and context layer built by [knesset_data](https://github.com/ChenPortsia/knesset_data). See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and milestones.
 
-**So far (milestone 2, done):** `get_context`, the tool that gives the agent the few context items a question needs, and a test of how well it finds them. Next is milestone 3, the SQL agent: see [docs/milestone_3_plan.md](docs/milestone_3_plan.md).
+**So far:** `get_context` (milestone 2, done), and the first agent of milestone 3: a SQL analyst that answers structured questions from the gold tables, with a trace of every run. Plan and status: [docs/milestone_3_plan.md](docs/milestone_3_plan.md).
 
 ## Layout
 
 ```
+agents/sql_analyst.py      # the agent: prompt, tools, answer structure; ask(question)
+ops/runlog.py              # agent_runs and agent_steps (data/agent_ops.duckdb), Langfuse trace ids
 tools/db.py                # the published database, read-only, and its data version
 tools/context.py           # get_context(question) -> the context items for a question
 tools/sql.py               # run_sql (one SELECT, 200 rows, 30 seconds) and sample_values
@@ -14,6 +16,8 @@ evals/question_bank.yaml   # questions, each with the items it needs
 evals/eval_context.py      # does get_context find them?
 evals/answer_bank.yaml     # questions with ground-truth SQL, for the answer test
 evals/check_truth.py       # does every ground-truth query run?
+evals/eval_answers.py      # the answer test: ask, grade, report
+evals/judge.py             # the grader
 tests/                     # unit tests on a tiny made-up context (no model, no warehouse)
 ```
 
@@ -28,6 +32,8 @@ uv sync
 make context Q="מי המורדים הגדולים בליכוד?"   # the context one question gets
 make eval-context                             # the test on the whole question bank (V=1 for details)
 make eval-truth                               # every ground-truth query in the answer bank runs
+make ask Q="כמה חוקים עברו בכנסת ה-25?"      # ask the agent (needs keys in .env)
+make eval-answers                             # the answer test (about 200 model calls)
 make test lint
 ```
 
@@ -67,3 +73,15 @@ How the search was chosen, on the first 34 questions (needed items found, aliase
 Stripping Hebrew prefixes and plural endings for keyword search was tried and didn't help, so it isn't used.
 
 The set-up was picked using this bank, so 100% is the best case. New questions are the real test: when 9 were added, 4 of them missed an item at first. Each was fixed in the context, not in the search: a synonym on a glossary term, or another phrasing (`also_asked`) on a verified query. Do the same as people ask new questions: add the question to the bank, and fix a miss by improving the context.
+
+## The agent
+
+`make ask` runs one question through the SQL analyst (`agents/sql_analyst.py`):
+
+1. Code fetches the context for the question and puts it in the first message.
+2. The model works in a loop with three tools: `run_sql`, `sample_values` and `get_context` (for a second, more specific search).
+3. It ends with a structured answer: its kind (`answer`, `clarify` or `out_of_scope`), the text in the question's language, the SQL behind it and the context items it used.
+
+Every run is logged to `ops.agent_runs` and `ops.agent_steps` in `data/agent_ops.duckdb`, and traced in Langfuse under the same `trace_id`. The model is the `KNESSET_MODEL` line in `.env`, written `provider:model`; changing provider is changing that line and its key.
+
+`make eval-answers` asks every question in `evals/answer_bank.yaml` and grades the answers against ground truth. One question takes about 5 model calls, so the whole test needs a key with real quota: Gemini's free tier allows 20 requests a day per model.

@@ -2,7 +2,7 @@
 
 A LangGraph multi-agent system that answers questions about the Knesset, reading the warehouse and context layer built by [knesset_data](https://github.com/ChenPortsia/knesset_data). See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and milestones.
 
-**So far (milestone 2):** `get_context`, the tool that gives the agent the few context items a question needs, and a test of how well it finds them.
+**So far (milestone 2, done):** `get_context`, the tool that gives the agent the few context items a question needs, and a test of how well it finds them. Next is milestone 3, the SQL agent: see [docs/milestone_3_plan.md](docs/milestone_3_plan.md).
 
 ## Layout
 

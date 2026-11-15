@@ -19,7 +19,7 @@
   needs: [alias.person.ben_gvir, table.fct_vote_result, rule.camp_at_the_time, glossary.coalition]
 
 - question: How often did Netanyahu show up to vote in the 25th Knesset?
-  needs: [alias.person.netanyahu, metric.attendance_rate, table.fct_vote_result]
+  needs: [alias.person.netanyahu, vq.vote_participation_25th_knesset, rule.absent_mks_have_no_row, table.fct_vote_result]
 
 - question: כמה ישיבות קיימה ועדת הכספים השנה?
   needs: [alias.committee.finance, table.fct_committee_session, metric.committee_sessions, rule.committee_across_knessets]
@@ -94,7 +94,7 @@
   needs: [glossary.closed_session, table.fct_committee_session]
 
 - question: כמה ח"כים נעדרו מההצבעה האחרונה?
-  needs: [glossary.vote_result, table.fct_vote_result]
+  needs: [glossary.vote_result, rule.absent_mks_have_no_row, table.fct_vote_result]
 
 - question: Did Ra'am vote with the Bennett government?
   needs: [alias.party.raam, alias.person.bennett, table.fct_vote_result, rule.camp_at_the_time]
@@ -107,3 +107,32 @@
 
 - question: מי ראש האופוזיציה?
   needs: [glossary.opposition_leader, table.fct_person_role]
+
+# Added 2026-11-15 with the new glossary terms and verified queries
+
+- question: כמה הסתייגויות הוגשו לחוק התקציב?
+  needs: [glossary.reservation, table.fct_plenum_vote]
+
+- question: Who was Speaker of the Knesset during the 24th Knesset?
+  needs: [glossary.speaker, table.fct_person_role]
+
+- question: כמה ישיבות ועדה בוטלו בשנה האחרונה?
+  needs: [glossary.committee_session, table.fct_committee_session]
+
+- question: How many bills were voted down or withdrawn?
+  needs: [glossary.stopped_bill, table.dim_bill]
+
+- question: אילו ח"כים חברים בוועדת הכספים?
+  needs: [alias.committee.finance, glossary.committee_member, table.fct_person_role]
+
+- question: Which Knesset got the most done?
+  needs: [vq.knessets_compared]
+
+- question: כמה הצבעות אי-אמון היו בכנסת ה-25?
+  needs: [glossary.no_confidence, vq.no_confidence_votes_by_knesset, table.fct_plenum_vote]
+
+- question: Are ministers answering fewer queries than they used to?
+  needs: [vq.query_reply_rate_by_knesset, metric.query_reply_rate, table.fct_query]
+
+- question: מי יו"ר הקואליציה?
+  needs: [glossary.coalition_chair, table.fct_person_role]

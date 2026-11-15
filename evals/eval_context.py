@@ -12,7 +12,8 @@ from pathlib import Path
 
 import yaml
 
-from tools.context import connect, get_context
+from tools.context import get_context
+from tools.db import connect
 
 BANK = Path(__file__).parent / "question_bank.yaml"
 

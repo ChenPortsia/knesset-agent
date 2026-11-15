@@ -2,25 +2,32 @@
 
 A LangGraph multi-agent system that answers questions about the Knesset, reading the warehouse and context layer built by [knesset_data](https://github.com/ChenPortsia/knesset_data). See [ARCHITECTURE.md](ARCHITECTURE.md) for the design and milestones.
 
-**So far (milestone 2):** `get_context`, the tool that gives the agent the few context items a question needs, and a test of how well it finds them.
+**So far (milestone 2, done):** `get_context`, the tool that gives the agent the few context items a question needs, and a test of how well it finds them. Next is milestone 3, the SQL agent: see [docs/milestone_3_plan.md](docs/milestone_3_plan.md).
 
 ## Layout
 
 ```
+tools/db.py                # the published database, read-only, and its data version
 tools/context.py           # get_context(question) -> the context items for a question
+tools/sql.py               # run_sql (one SELECT, 200 rows, 30 seconds) and sample_values
 evals/question_bank.yaml   # questions, each with the items it needs
 evals/eval_context.py      # does get_context find them?
+evals/answer_bank.yaml     # questions with ground-truth SQL, for the answer test
+evals/check_truth.py       # does every ground-truth query run?
 tests/                     # unit tests on a tiny made-up context (no model, no warehouse)
 ```
 
 ## Quick start
 
-Needs the warehouse from knesset_data, with its context built (`make context` there). By default it is read from `../knesset_data/data/warehouse/warehouse.duckdb`; set `KNESSET_WAREHOUSE` to use another path.
+Needs the database knesset_data publishes: run `make context publish` there. It holds only the gold tables and the context, so the agent can't reach anything else. By default it is read from `../knesset_data/data/published/knesset.duckdb`; set `KNESSET_DATABASE` to use another path.
+
+Keys go in a `.env` file (never committed): copy `.env.example` and fill it in.
 
 ```bash
 uv sync
 make context Q="מי המורדים הגדולים בליכוד?"   # the context one question gets
 make eval-context                             # the test on the whole question bank (V=1 for details)
+make eval-truth                               # every ground-truth query in the answer bank runs
 make test lint
 ```
 

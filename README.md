@@ -39,15 +39,15 @@ A question gets, in this order:
 
 A column that matches counts for its table, and a table comes with all its columns.
 
-**Merging two rankings.** Keyword search finds exact words (names, terms); embeddings find meaning ("show up to vote" → attendance). Each item scores `1 / (60 + position)` in each ranking and the two are added (reciprocal rank fusion), so an item high in either list does well and an item high in both does best.
+**Merging two rankings.** Keyword search finds exact words (names, terms); embeddings find meaning ("answer queries" → reply rate). Each item scores `1 / (60 + position)` in each ranking and the two are added (reciprocal rank fusion), so an item high in either list does well and an item high in both does best.
 
 ## The test
 
-`evals/question_bank.yaml` has 34 questions (half Hebrew, half English), each with the items an analyst would need. The labels were written before the search was run. `make eval-context` fails if any needed item is missing.
+`evals/question_bank.yaml` has 43 questions (half Hebrew, half English), each with the items an analyst would need. The labels were written before the search was run. `make eval-context` fails if any needed item is missing.
 
-Result: **34 of 34 questions get everything they need** (106 of 106 items), with about 24 items returned per question.
+Result: **43 of 43 questions get everything they need** (128 of 128 items), with about 25 items returned per question.
 
-How the search was chosen, on the same bank (needed items found, aliases and standing rules aside):
+How the search was chosen, on the first 34 questions (needed items found, aliases and standing rules aside):
 
 | Set-up | Found |
 | --- | --- |
@@ -59,4 +59,4 @@ How the search was chosen, on the same bank (needed items found, aliases and sta
 
 Stripping Hebrew prefixes and plural endings for keyword search was tried and didn't help, so it isn't used.
 
-The set-up was picked using this bank, so 100% is the best case. New questions are the real test: add them to the bank as people ask them, and fix a miss by improving the context (a synonym, a `see_also`, a rule) rather than by loosening the search.
+The set-up was picked using this bank, so 100% is the best case. New questions are the real test: when 9 were added, 4 of them missed an item at first. Each was fixed in the context, not in the search: a synonym on a glossary term, or another phrasing (`also_asked`) on a verified query. Do the same as people ask new questions: add the question to the bank, and fix a miss by improving the context.

@@ -24,7 +24,7 @@ from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
 from langchain_core.tools import tool
 
 from ops import runlog
-from tools import context, odata, sql
+from tools import context, odata, search, sql
 from tools.db import connect, data_version
 from tools.model import load_model
 
@@ -48,6 +48,10 @@ How to work:
   other name or code, check its spelling with sample_values before filtering on it.
 - If the context lacks something, call get_context with a more specific question.
 - If a query fails, read the error, fix the query and try again.
+- For what was said in committee, use search_protocols: it finds passages by meaning and by
+  words. Use run_sql on fct_turn only to count or compare speaking. Protocols are edited
+  minutes and only part of the sessions is loaded: quote or summarise the passages you
+  found, name the session date and speaker, and never present a summary as exact words.
 - The database is loaded once a day; the user's message says how far it runs. Only when the
   question is about something after that date, use odata_query (the live Knesset API), and
   say in the answer that it came from the live API. For everything else use run_sql.
@@ -116,6 +120,27 @@ def make_tools(con: duckdb.DuckDBPyConnection) -> list[Any]:
             return f"ERROR: {error}"
 
     @tool
+    def search_protocols(
+        query: str,
+        committee_category_id: int | None = None,
+        person_id: int | None = None,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> str:
+        """Search what was said in committee sessions. Returns the passages of the protocols
+        that best match the query, each with its committee, date and speakers. Write the
+        query in Hebrew, as the words likely to be in the protocol. Optional filters: a
+        committee (dim_committee.category_id), an MK who speaks in the passage
+        (dim_person.person_id), session dates (YYYY-MM-DD)."""
+        try:
+            passages = search.search_protocols(
+                con.cursor(), query, committee_category_id, person_id, date_from, date_to
+            )
+            return json.dumps(passages, ensure_ascii=False, default=str)
+        except duckdb.Error as error:
+            return f"ERROR: {error}"
+
+    @tool
     def odata_query(
         table: str, filter: str | None = None, orderby: str | None = None, top: int = 20
     ) -> str:
@@ -138,7 +163,7 @@ def make_tools(con: duckdb.DuckDBPyConnection) -> list[Any]:
         except (odata.Refused, httpx.HTTPError) as error:
             return f"ERROR: {error}"
 
-    return [get_context, run_sql, sample_values, odata_query, odata_fields]
+    return [get_context, run_sql, sample_values, search_protocols, odata_query, odata_fields]
 
 
 def first_message(con: duckdb.DuckDBPyConnection, question: str) -> str:

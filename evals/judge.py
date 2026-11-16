@@ -8,8 +8,9 @@ import json
 import os
 from typing import Any
 
-from langchain.chat_models import init_chat_model
 from pydantic import BaseModel, Field
+
+from tools.model import load_model
 
 PROMPT = """\
 You grade an analyst's answer about the Israeli Knesset against the true result of a database
@@ -41,10 +42,10 @@ class Verdict(BaseModel):
 
 
 def judge(question: str, truth: dict[str, Any], answer: str, model: str | None = None) -> Verdict:
-    model = model or os.environ.get("KNESSET_JUDGE_MODEL") or os.environ["KNESSET_MODEL"]
+    model = model or os.environ.get("KNESSET_JUDGE_MODEL") or None
     shown = json.dumps(
         {"columns": truth["columns"], "rows": truth["rows"][:ROWS_SHOWN]},
         ensure_ascii=False, default=str,
     )  # fmt: skip
     prompt = PROMPT.format(question=question, shown=ROWS_SHOWN, truth=shown, answer=answer)
-    return init_chat_model(model).with_structured_output(Verdict).invoke(prompt)
+    return load_model(model).with_structured_output(Verdict).invoke(prompt)

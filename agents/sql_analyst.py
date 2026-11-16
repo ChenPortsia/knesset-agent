@@ -19,13 +19,13 @@ import duckdb
 import httpx
 from dotenv import load_dotenv
 from langchain.agents import create_agent
-from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from ops import runlog
 from tools import context, odata, sql
 from tools.db import connect, data_version
+from tools.model import load_model
 
 load_dotenv()
 
@@ -169,7 +169,7 @@ def ask(
     }
     callbacks, run["trace_id"] = runlog.tracing(run)
     agent = create_agent(
-        init_chat_model(model), make_tools(con), system_prompt=PROMPT, response_format=Answer
+        load_model(model), make_tools(con), system_prompt=PROMPT, response_format=Answer
     )
     started = time.time()
     steps: list[dict[str, Any]] = []

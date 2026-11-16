@@ -20,6 +20,7 @@ Pass the answer only if what it states agrees with the true result:
 - Every number the question asks for matches the true result. Rounding is fine (69.7% vs 70%).
 - For "which / who ... the most" questions, the items the answer names as top must be the top
   rows of the true result, in the same order. The answer may list fewer rows than the result.
+  Rows whose values are equal in the true result may come in any order.
 - Names may be written in Hebrew or English, in full or short form.
 - Extra correct detail, caveats and wording do not matter. Do not use outside knowledge.
 Fail it if a requested number or name is missing, different, or the answer says it cannot answer.

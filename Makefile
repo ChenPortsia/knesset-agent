@@ -1,7 +1,7 @@
 # Reads the database published by knesset_data (../knesset_data/data/published/knesset.duckdb,
 # or set KNESSET_DATABASE). Run `make context publish` there first.
 
-.PHONY: ask queries ui context eval-context eval-truth eval-answers test lint
+.PHONY: ask queries ui eval-text context eval-context eval-truth eval-answers test lint
 
 ask:  ## Ask the agent a question, e.g. make ask Q="כמה חוקים עברו בכנסת ה-25?"
 	uv run python -W ignore -m agents.sql_analyst "$(Q)"
@@ -23,6 +23,9 @@ eval-truth:  ## Does every ground-truth query in the answer bank run? (V=1 to se
 
 eval-answers:  ## The answer test: ask every question in the answer bank and grade it (ARGS="--limit 5")
 	uv run python -W ignore -m evals.eval_answers $(ARGS)
+
+eval-text:  ## The text test: does search find the passage, is the answer right (ARGS="--retrieval-only" is free)
+	uv run python -W ignore -m evals.eval_text $(ARGS)
 
 test:
 	uv run pytest -q

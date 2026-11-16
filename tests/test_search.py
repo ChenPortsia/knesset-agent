@@ -23,15 +23,15 @@ def con():
             (10, 'ועדת הכספים', 2), (20, 'ועדת הכלכלה', 3)) AS t (committee_id, committee_name,
             category_id);
         CREATE TABLE rag.chunks (chunk_id VARCHAR, committee_session_id INTEGER,
-            committee_id INTEGER, session_date DATE, speakers VARCHAR[], person_ids INTEGER[],
-            chunk_text VARCHAR);
+            first_turn INTEGER, last_turn INTEGER, committee_id INTEGER, session_date DATE,
+            speakers VARCHAR[], person_ids INTEGER[], chunk_text VARCHAR);
         CREATE TABLE rag.embeddings (chunk_id VARCHAR, embedding FLOAT[2]);
         INSTALL fts; LOAD fts;
         """
     )
     for id_, committee, day, people, text, vector in CHUNKS:
         con.execute(
-            "INSERT INTO rag.chunks VALUES (?, 1, ?, ?, ['x'], ?, ?)",
+            "INSERT INTO rag.chunks VALUES (?, 1, 0, 3, ?, ?, ['x'], ?, ?)",
             [id_, committee, day, people, text],
         )
         con.execute("INSERT INTO rag.embeddings VALUES (?, ?)", [id_, vector])

@@ -10,6 +10,8 @@ question bank are answered correctly, with a trace of every run in Langfuse.
 **Not the goal.** Several agents, a planner, a critic, text search, a chat UI, learning. Those
 are milestones 4 to 7. One agent first: it sets the baseline the team has to beat.
 
+**Status: done.** 35 of 38 (92%) on both `claude-opus-5-5` and `claude-sonnet-5-5`, with every run traced. Left open: freshness questions for `odata_query`, and why Sonnet missed 3 of the 7 held-out questions.
+
 ## What we already have
 
 | Piece | Where | Used for |

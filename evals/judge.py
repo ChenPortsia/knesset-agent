@@ -5,12 +5,11 @@ fail with a reason. Set KNESSET_JUDGE_MODEL to grade with another model than the
 """
 
 import json
-import os
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-from tools.model import load_model
+from tools.model import judge_model, load_model, structured
 
 PROMPT = """\
 You grade an analyst's answer about the Israeli Knesset against the true result of a database
@@ -43,10 +42,9 @@ class Verdict(BaseModel):
 
 
 def judge(question: str, truth: dict[str, Any], answer: str, model: str | None = None) -> Verdict:
-    model = model or os.environ.get("KNESSET_JUDGE_MODEL") or None
     shown = json.dumps(
         {"columns": truth["columns"], "rows": truth["rows"][:ROWS_SHOWN]},
         ensure_ascii=False, default=str,
     )  # fmt: skip
     prompt = PROMPT.format(question=question, shown=ROWS_SHOWN, truth=shown, answer=answer)
-    return load_model(model).with_structured_output(Verdict).invoke(prompt)
+    return structured(load_model(model) if model else judge_model(), Verdict).invoke(prompt)

@@ -20,6 +20,8 @@ evals/answer_bank.yaml     # questions with ground-truth SQL, for the answer tes
 evals/check_truth.py       # does every ground-truth query run?
 evals/eval_answers.py      # the answer test: ask, grade, report
 evals/judge.py             # the grader
+evals/text_bank.yaml       # questions about what was said in committee, with the passage that answers each
+evals/eval_text.py         # the text test: is the passage found, is the answer correct and faithful
 tests/                     # unit tests on a tiny made-up context (no model, no warehouse)
 ```
 
@@ -36,6 +38,8 @@ make eval-context                             # the test on the whole question b
 make eval-truth                               # every ground-truth query in the answer bank runs
 make ask Q="כמה חוקים עברו בכנסת ה-25?"      # ask the agent (needs keys in .env)
 make eval-answers                             # the answer test (about 160 model calls)
+make eval-text ARGS="--retrieval-only"         # the text test, search part only: free
+make eval-text                                # the text test (about 70 short model calls)
 make test lint
 ```
 
@@ -124,3 +128,43 @@ In the first run, both failures that were shown turned out to be mistakes in the
 - **MKs least loyal to their faction.** Places 14 and 15 were a tie at one decimal, and the verified query broke the tie arbitrarily. It now orders by the exact share, and the judge accepts tied rows in any order.
 
 Reading them also showed that only about a quarter of committee sessions have an end time, so total committee hours are a large undercount. A rule now tells the agent.
+
+## The text test
+
+`make eval-text` measures search and answer over the committee protocols, on the 27 questions of `evals/text_bank.yaml`. Each question was written from one passage and records where it is. It asks the three things RAGAS asks, measured simply:
+
+| Measure | How | Model calls |
+| --- | --- | --- |
+| Was the right passage found? | is the labelled passage in the top 1, 3 and 6 results | none |
+| Is the answer correct? | a grader compares it with the reference answer | one |
+| Is the answer faithful? | the grader checks every claim is in the passages given | (the same call) |
+
+Answering is one model call over the top 6 passages. A question that isn't in Hebrew is first turned into a Hebrew search query by the model, as the agent does itself, because keyword search only matches Hebrew words. It tests search and answer, not the agent's loop.
+
+### Baseline (pilot: 254 sessions, 12,725 chunks, the fast `potion` embedding model)
+
+Search only, questions as asked (13 Hebrew, 14 English), right passage in the top 6:
+
+| Ranking | All | Hebrew | English |
+| --- | --- | --- | --- |
+| Keywords and meaning merged equally (first version) | 10/27 | 9/13 | 1/14 |
+| Keywords only | 10/27 | 9/13 | 1/14 |
+| Meaning only (`potion`) | 6/27 | 3/13 | 3/14 |
+
+Keyword search finds Hebrew questions well and English ones not at all; `potion` is weak at meaning in both. Merged equally, the weak ranking pulled good keyword hits down, so keywords now count four times as much (`KEYWORD_WEIGHT` in `tools/search.py`).
+
+With the English questions rewritten as Hebrew queries by hand, keywords alone found 22 of 27. Those rewrites were written by someone who had seen the passages, so the fair number is the one `make eval-text` gives, where the model writes the query. A trial on 4 questions found all 4 passages and gave 4 correct, faithful answers.
+
+### What a strong embedding model would add
+
+The same questions on a reduced set of 1,312 chunks (the labelled passages plus a random tenth of the rest, so every number is easier than on the full pilot), questions as asked:
+
+| Ranking | All | Hebrew | English |
+| --- | --- | --- | --- |
+| Keywords | 13/27 | 12/13 | 1/14 |
+| `potion` | 14/27 | 9/13 | 5/14 |
+| `potion` + keywords | 19/27 | 13/13 | 6/14 |
+| `e5-large` | 25/27 | 11/13 | 14/14 |
+| `e5-large` + keywords | 27/27 | 13/13 | 14/14 |
+
+The large model finds English questions in Hebrew text and rephrased questions that share no words with the passage. It is also about 5,000 times slower to build (0.8 chunks a second on the Mac). How to get that quality at a workable cost is the decision of step 10 in `knesset_data/docs/milestone_4_plan.md`.

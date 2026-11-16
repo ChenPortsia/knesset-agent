@@ -1,0 +1,144 @@
+# Text bank v1: questions about what was said in committee, for the text test (milestone 4).
+#
+# Each question was written from one passage of the pilot protocols (the Finance Committee,
+# 2024). `committee_session_id` and `turn` say where the answer is: a search result counts
+# as a hit when it is from that session and covers that turn. `reference` is the answer the
+# passage gives, for grading. Questions are reworded from the passage, and half are in
+# English, so that finding them takes more than matching words; even so, they were written
+# while looking at the text, which favours the search a little.
+# Run: make eval-text (ARGS="--retrieval-only" costs nothing)
+
+- question: What did a speaker argue happens when UNRWA is allowed to provide services in Judea and Samaria?
+  committee_session_id: 2217504
+  turn: 259
+  reference: It frees the Palestinian Authority from providing services to the population, hurts its legitimacy and pushes it to seek legitimacy by fighting Israel.
+
+- question: מה סיפר אחיו של החטוף קית סיגל לוועדה?
+  committee_session_id: 2223404
+  turn: 14
+  reference: לי סיגל סיפר שגיסתו אביבה שוחררה לפני כמעט שנה, ושקית, שנחטף בגיל 64, נמצא 402 ימים בשבי בעזה ואולי אינו יודע שאביבה והבן שלהם בחיים.
+
+- question: On what does the company Netzer spend its budget, and when did it run a deficit?
+  committee_session_id: 2217051
+  turn: 86
+  reference: On salaries, consultants and outside lawyers; it sits in the Taas Systems compound and guards the Yavne compound. It had a deficit budget in 2023.
+
+- question: על אילו רשתות חינוך הוחלה רפורמת "אופק חדש" תחילה?
+  committee_session_id: 2215814
+  turn: 1020
+  reference: בשנת תשפ"ד על מעיין החינוך התורני ומרכז החינוך העצמאי; קריטריונים למוסדות נוספים ייקבעו בתקנות בתשפ"ה.
+
+- question: What example did Finance Minister Smotrich give about factories closing in Yeruham?
+  committee_session_id: 2214969
+  turn: 275
+  reference: The town's leaders told him that closing Negev Ceramics and Phoenicia was the best thing that happened to it; advanced industry opened, and population, average wage, quality of life and productivity all rose.
+
+- question: מה הייתה הביקורת של נעמה לזימי על קריטריון המשפחות מרובות הילדים?
+  committee_session_id: 2225275
+  turn: 518
+  reference: שהוא קריטריון קובע שמפלה אוכלוסיות אחרות, אף שנכון לשקול גם את מצבן של משפחות מרובות ילדים.
+
+- question: What problems with foreign workers and manpower corporations did MK Eliyahu Revivo describe?
+  committee_session_id: 2217898
+  turn: 55
+  reference: Regulation keeps getting heavier, and there is no mutual guarantee between manpower corporations; foreign workers move to a new employer right after arriving at the airport, leaving the one who brought and paid for them.
+
+- question: איך תיאר ינון אזולאי את מצב העסקים באזור חיפה?
+  committee_session_id: 2222697
+  turn: 78
+  reference: העסקים בחיפה ובקריות סגורים; אולמות האירועים נסגרו, חברות ההפקה לא טופלו עוד מהקורונה, וגם לתיירות ולטיסות לא ניתן מענה.
+
+- question: What share of hungry people were said not to be eligible for the food vouchers?
+  committee_session_id: 2215472
+  turn: 683
+  reference: About 90% or more, according to data presented to the committee, as MK Orit Farkash-Hacohen said.
+
+- question: עד מתי ניתנים פיצויים לכל הענפים ברמה הארצית?
+  committee_session_id: 2213550
+  turn: 184
+  reference: עד סוף דצמבר, לדברי מירי סביון.
+
+- question: What did the committee chair ask the minister to do about the sharp rise in municipal property tax rates?
+  committee_session_id: 2218674
+  turn: 73
+  reference: Gafni asked the minister to support his bill that takes the public-sector wage index out of the update formula, and said he would bring it to the ministerial committee that week if the minister backed it.
+
+- question: מה ביקש שמעון אור מחברי הכנסת לעשות?
+  committee_session_id: 2217473
+  turn: 9
+  reference: להפסיק להתחבא, לגלות אומץ וללחוץ על כניסה מיידית לעזה ועל משילות ישראלית בה, עכשיו כשאין עסקה.
+
+- question: Are the economic measures expected to increase the number of people receiving income support?
+  committee_session_id: 2225008
+  turn: 279
+  reference: No. The answer given was that the measures are not expected to increase income support recipients; it stays for people with no other income or very low income, which is not taxed anyway.
+
+- question: Why did self-employed people incorporate as companies over the years, according to Moshe Asher?
+  committee_session_id: 2224883
+  turn: 446
+  reference: To protect themselves and to benefit from two-stage taxation; by contrast, people who are really employees and incorporate are treated for tax as paying 50%, like other employees.
+
+- question: מה סיפר אופיר יחזקאל על הוריו בקריית שמונה?
+  committee_session_id: 2219809
+  turn: 52
+  reference: שהם בני 80 ומעלה, עלו ב-1952 וקנו יחידת דיור קטנה שהם משכירים ב-2,500 שקל כהשלמה לפנסיה, ושהשוכר לא האריך את החוזה.
+
+- question: What did Gilad Kariv want to know about summer-vacation funding for Haredi exempt schools?
+  committee_session_id: 2221131
+  turn: 180
+  reference: He said those schools don't stop teaching in July and August (they teach until Tisha B'Av and from 1 Elul), so he asked for which activity and for which exact dates the summer budget is given.
+
+- question: כמה פריטים יש בארכיון של המוזיאון שעליו דיבר יגאל כהן?
+  committee_session_id: 2219112
+  turn: 21
+  reference: כ-2.5 מיליון פריטים שאין להם תחליף.
+
+- question: To how many litres was the minimum consumption for industrial lubricating oils lowered?
+  committee_session_id: 2215471
+  turn: 6
+  reference: From 4,000 litres to 3,000, and then to 2,500 at the committee's request.
+
+- question: מדוע קרא היושב-ראש את גלעד קריב לסדר?
+  committee_session_id: 2219488
+  turn: 355
+  reference: משום שהפריע ושאל שאלות בלי שקיבל רשות דיבור.
+
+- question: When will the mechanism for the years after 2030 be set?
+  committee_session_id: 2221377
+  turn: 66
+  reference: Close to 2030. The commitment is to have a mechanism for 2030 to 2035, but its rates will be set near that time because Europe has not yet decided on its own.
+
+- question: מה הייתה הביקורת של חמד עמאר על החלטות הממשלה לסיוע ליישובים?
+  committee_session_id: 2218235
+  turn: 32
+  reference: שאחרי שמונה חודשים אנשים עדיין לא מרגישים את הסיוע בכיס, ושההחלטות מגיעות כל פעם ליישובים אחרים (צפת ואופקים בחוץ) במקום חבילה אחת שנותנת פתרון לכולם.
+
+- question: How would a 5% rise in electricity prices affect water prices?
+  committee_session_id: 2214981
+  turn: 285
+  reference: It would raise water tariffs by about 1%, gradually, with the full effect in about five years, according to the Water Authority's representative.
+
+- question: מה אמר משה רוט על מצבה של צפת?
+  committee_session_id: 2218236
+  turn: 325
+  reference: שצפת היא עיר הבירה של הגליל, שעשרות עסקים ומאות משפחות איבדו את פרנסתם בחצי השנה האחרונה, ושנדרשים דמי הצלה כדי למנוע קריסה ועזיבה.
+
+- question: What did a self-employed tourism and conference organiser tell the committee about her situation?
+  committee_session_id: 2220256
+  turn: 446
+  reference: Her event in Tiberias was cancelled after a rocket barrage closed the beaches, and she took a loan of almost 70,000 euros for a conference abroad for which she may only be paid in December, if it happens.
+
+- question: מהו "הפיל בחדר" שלדברי נעמה לזימי לא מדברים עליו?
+  committee_session_id: 2225001
+  turn: 1643
+  reference: נטישת מוחות ובעלי מקצועות חיוניים מישראל, בגלל המציאות שהממשלה יוצרת וההפיכה המשטרית.
+
+- question: What did Yinon Azoulay say about the Prison Service and its staff?
+  committee_session_id: 2226153
+  turn: 1372
+  reference: That its people do holy work, sometimes under threat, that prisoners he met said they are treated well, and that recruiting staff is hard because conditions are not good enough for the work.
+
+- question: מה לדברי יוראי מצלאוי היה חסר תקדים באישור התקנות?
+  committee_session_id: 2224206
+  turn: 143
+  reference: שהתקנות מאושרות חודש בחודשו; בעבר הן אושרו רטרואקטיבית, כמה ימים אחרי מבצע מסוים.

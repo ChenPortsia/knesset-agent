@@ -86,3 +86,24 @@ The set-up was picked using this bank, so 100% is the best case. New questions a
 Every run is logged to `ops.agent_runs` and `ops.agent_steps` in `data/agent_ops.duckdb`, and traced in Langfuse under the same `trace_id`. The view `ops.agent_queries` lists every SQL and live-API query the agent sent, with the model that sent it, the question and whether it worked: `make queries` shows the latest. The model is the `KNESSET_MODEL` line in `.env`, written `provider:model`; changing provider is changing that line and its key.
 
 `make eval-answers` asks every question in `evals/answer_bank.yaml` and grades the answers against ground truth. One question takes about 5 model calls, so the whole test needs a key with real quota: Gemini's free tier allows 20 requests a day per model.
+
+### Result
+
+First full run, on `anthropic:claude-opus-5-5`: **35 of 38 correct (92%)**. The questions used for tuning scored 29 of 31, the held-out ones 6 of 7. About 9 seconds and 17,600 tokens per question.
+
+| Category | Correct |
+| --- | --- |
+| lookup | 5/5 |
+| aggregate | 8/10 |
+| votes | 7/8 |
+| oversight | 5/5 |
+| trend | 5/5 |
+| ambiguous | 2/2 |
+| out of scope | 3/3 |
+
+Both failures that were shown turned out to be mistakes in the ground truth, not in the agent:
+
+- **Busiest committee in 2024.** The agent left out cancelled sessions, as the glossary says. The verified query counted them. The query, the monthly one and the `committee_sessions` metric were fixed.
+- **MKs least loyal to their faction.** Places 14 and 15 were a tie at one decimal, and the verified query broke the tie arbitrarily. It now orders by the exact share, and the judge accepts tied rows in any order.
+
+Reading them also showed that only about a quarter of committee sessions have an end time, so total committee hours are a large undercount. A rule now tells the agent.

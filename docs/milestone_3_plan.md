@@ -93,8 +93,8 @@ knesset-agent/
 | 4 | **The agent**: prompt, tools, answer structure, `make ask Q="..."` | built; answered 5 of 5 trial questions correctly. A full hand-check waits for a key with quota |
 | 5 | **Langfuse traces and `ops` logging** | done: a question is one trace and one `agent_runs` row with the same `trace_id` |
 | 6 | **The judge**, checked on 20 hand-graded answers | it agrees with the hand grades on at least 18 |
-| 7 | **`make eval-answers`**: run the bank, grade, report by category, with cost and time | built; the baseline waits for a key with quota (the free tier allows 20 requests a day) |
-| 8 | **Improve to 80%**: read the failures; fix context first (a rule, a term, a verified query), the prompt second, tools last | at least 80%, and each fix noted |
+| 7 | **`make eval-answers`**: run the bank, grade, report by category, with cost and time | done: 35 of 38 (92%) on `claude-opus-5-5`, first run |
+| 8 | **Improve to 80%**: read the failures; fix context first (a rule, a term, a verified query), the prompt second, tools last | passed on the first run. Both failures shown were mistakes in the ground truth, fixed (see README) |
 | 9 | **`odata_query`** and 3 to 5 freshness questions | the tool is built and tested against a made-up API; the freshness questions wait for a model key with quota |
 | 10 | **Cheaper models** on the same test | a table of score, cost and time per model; a default chosen |
 | 11 | **Docs**: README, `ARCHITECTURE.md` | someone new can ask a question and run the test |

@@ -165,7 +165,21 @@ First full run, on `claude-sonnet-5-5`, with the model writing the Hebrew querie
 
 Two answers were correct without the labelled passage: another passage of the same debate held the answer.
 
-### What a strong embedding model would add
+### With the large model (`e5-large`, embedded on the Mac's GPU)
+
+The same test on the same pilot, after re-embedding its 10,271 chunks with `e5-large`:
+
+| Measure | Fast model (`potion`) | Large model (`e5-large`) |
+| --- | --- | --- |
+| Right passage in the top 1 | | 14/27 (52%) |
+| Right passage in the top 3 | | 21/27 (78%) |
+| Right passage in the top 6 | 17/26 (65%) | 24/27 (89%) |
+| Answers correct | 19/26 (73%) | 21/27 (78%) |
+| Answers faithful | 23/26 (88%) | 25/27 (93%) |
+
+Search improved a lot; answers improved less. In three questions the right passage was found (twice at the top) and the answer was still graded incorrect, so the next gain is in answering or grading, not in search.
+
+### What a strong embedding model would add (the test that led to it)
 
 The same questions on a reduced set of 1,312 chunks (the labelled passages plus a random tenth of the rest, so every number is easier than on the full pilot), questions as asked:
 

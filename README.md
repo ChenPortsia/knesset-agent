@@ -83,7 +83,7 @@ The set-up was picked using this bank, so 100% is the best case. New questions a
 2. The model works in a loop with its tools: `run_sql`, `sample_values`, `get_context` (for a second, more specific search), and `odata_query` with `odata_fields` (the live Knesset API, only for facts newer than the last load).
 3. Its last message is the answer. The first line says its kind (`answer`, `clarify` or `out_of_scope`); the text follows in the question's language. The run record adds the last query that worked.
 
-Every run is logged to `ops.agent_runs` and `ops.agent_steps` in `data/agent_ops.duckdb`, and traced in Langfuse under the same `trace_id`. The view `ops.agent_queries` lists every SQL and live-API query the agent sent, with the model that sent it, the question and whether it worked: `make queries` shows the latest. The model is the `KNESSET_MODEL` line in `.env`, written `provider:model`; changing provider is changing that line and its key.
+Every run is logged to `ops.agent_runs` and `ops.agent_steps` in `data/agent_ops.duckdb`, and traced in Langfuse under the same `trace_id`. The view `ops.agent_queries` lists every SQL and live-API query the agent sent, with the model that sent it, the question and whether it worked: `make queries` shows the latest, and `make ui` opens all of it in the browser, next to the data and the saved test results (`eval_results`). The model is the `KNESSET_MODEL` line in `.env`, written `provider:model`; changing provider is changing that line and its key.
 
 `make eval-answers` asks every question in `evals/answer_bank.yaml` and grades the answers against ground truth.
 
@@ -108,7 +108,16 @@ First full run, on `anthropic:claude-opus-5-5`: **35 of 38 correct (92%)**. The 
 | ambiguous | 2/2 |
 | out of scope | 3/3 |
 
-Both failures that were shown turned out to be mistakes in the ground truth, not in the agent:
+After fixing the ground truth and making runs cheaper (prompt caching, results capped at 50 rows, a plain final message), the same test on `anthropic:claude-sonnet-5-5`, graded by `claude-haiku-5-5`:
+
+| Model | All | Tuned on | Held out | Model calls per question | Cost of the run |
+| --- | --- | --- | --- | --- | --- |
+| `claude-opus-5-5` (first run, before the fixes) | 35/38 (92%) | 29/31 | 6/7 | about 3.4 | about $4 |
+| `claude-sonnet-5-5` | 35/38 (92%) | 31/31 | 4/7 | 2.0 | $0.86 |
+
+Sonnet's three misses are all held-out questions, whose failures are not read. Seven questions are too few to tell a real weakness from chance.
+
+In the first run, both failures that were shown turned out to be mistakes in the ground truth, not in the agent:
 
 - **Busiest committee in 2024.** The agent left out cancelled sessions, as the glossary says. The verified query counted them. The query, the monthly one and the `committee_sessions` metric were fixed.
 - **MKs least loyal to their faction.** Places 14 and 15 were a tie at one decimal, and the verified query broke the tie arbitrarily. It now orders by the exact share, and the judge accepts tied rows in any order.

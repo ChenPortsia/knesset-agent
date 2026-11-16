@@ -3,7 +3,7 @@
 import duckdb
 import pytest
 
-from tools.search import search_protocols
+from tools.search import read_around, search_protocols
 
 # chunk_id, committee_id, date, person_ids, text, embedding
 CHUNKS = [
@@ -23,7 +23,8 @@ def con():
             (10, 'ועדת הכספים', 2), (20, 'ועדת הכלכלה', 3)) AS t (committee_id, committee_name,
             category_id);
         CREATE TABLE rag.chunks (chunk_id VARCHAR, committee_session_id INTEGER,
-            first_turn INTEGER, last_turn INTEGER, committee_id INTEGER, session_date DATE,
+            position INTEGER, first_turn INTEGER, last_turn INTEGER, committee_id INTEGER,
+            session_date DATE,
             speakers VARCHAR[], person_ids INTEGER[], chunk_text VARCHAR);
         CREATE TABLE rag.embeddings (chunk_id VARCHAR, embedding FLOAT[2]);
         CREATE TABLE rag.build AS SELECT 'fake' AS embedding_model, '' AS question_prefix,
@@ -31,10 +32,10 @@ def con():
         INSTALL fts; LOAD fts;
         """
     )
-    for id_, committee, day, people, text, vector in CHUNKS:
+    for position, (id_, committee, day, people, text, vector) in enumerate(CHUNKS):
         con.execute(
-            "INSERT INTO rag.chunks VALUES (?, 1, 0, 3, ?, ?, ['x'], ?, ?)",
-            [id_, committee, day, people, text],
+            "INSERT INTO rag.chunks VALUES (?, ?, ?, 0, 3, ?, ?, ['x'], ?, ?)",
+            [id_, int(id_[0]), position, committee, day, people, text],
         )
         con.execute("INSERT INTO rag.embeddings VALUES (?, ?)", [id_, vector])
     con.execute(
@@ -68,3 +69,10 @@ def test_a_result_says_where_when_and_who(con):
     row = search_protocols(con, "הבנקים", embed=lambda *_: [1, 0])[0]
     assert row["committee_name"] == "ועדת הכספים" and row["session_date"] == "2024-02-13"
     assert "רווחי הבנקים" in row["chunk_text"]
+
+
+def test_read_around_gives_the_neighbours_in_the_same_session_only(con):
+    # chunks 1-0-0 and 1-5-0 are session 1; 2-0-0 follows in position but is another session
+    assert [r["chunk_id"] for r in read_around(con, "1-5-0")] == ["1-0-0", "1-5-0"]
+    assert [r["chunk_id"] for r in read_around(con, "1-0-0")] == ["1-0-0", "1-5-0"]
+    assert [r["chunk_id"] for r in read_around(con, "2-0-0")] == ["2-0-0"]

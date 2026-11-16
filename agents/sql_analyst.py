@@ -62,8 +62,9 @@ How to finish:
 - clarify: the question can be read in clearly different ways (which vote? active by what
   measure?) and the readings would give different answers. Ask one short question. Do not
   guess, and do not run queries first.
-- out_of_scope: the database cannot answer (before 2015, opinions, what was said in debates,
-  events outside the Knesset). Say what is missing.
+- out_of_scope: the database cannot answer (before 2015, opinions, what was said in the
+  plenum, events outside the Knesset). Say what is missing. What was said in committee is
+  in scope where the context shows fct_turn.
 - Write in the language of the question, briefly, with no SQL in the text.
 """
 

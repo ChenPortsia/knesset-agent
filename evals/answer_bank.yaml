@@ -235,6 +235,6 @@
   category: out_of_scope
   expect: out_of_scope
 
-- question: What did MKs say in the Finance Committee about the 2025 budget?
+- question: What did the Prime Minister say in the plenum debate on the 2025 budget?
   category: out_of_scope
   expect: out_of_scope

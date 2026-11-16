@@ -26,6 +26,8 @@ def con():
             first_turn INTEGER, last_turn INTEGER, committee_id INTEGER, session_date DATE,
             speakers VARCHAR[], person_ids INTEGER[], chunk_text VARCHAR);
         CREATE TABLE rag.embeddings (chunk_id VARCHAR, embedding FLOAT[2]);
+        CREATE TABLE rag.build AS SELECT 'fake' AS embedding_model, '' AS question_prefix,
+            1 AS keyword_weight;
         INSTALL fts; LOAD fts;
         """
     )

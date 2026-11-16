@@ -23,7 +23,8 @@ OPS = Path(
 RUN_COLUMNS = (
     "run_id", "trace_id", "session_id", "user_id", "data_version", "model", "model_served",
     "question",
-    "kind", "text", "sql", "context_ids", "input_tokens", "output_tokens", "seconds",
+    "kind", "text", "sql", "context_ids", "model_calls", "input_tokens", "output_tokens",
+    "seconds",
 )  # fmt: skip
 DDL = """
 CREATE SCHEMA IF NOT EXISTS ops;
@@ -39,6 +40,7 @@ CREATE TABLE IF NOT EXISTS ops.agent_steps (
 );
 -- model is the setting (maybe an alias like gemini-pro-latest); model_served is what answered
 ALTER TABLE ops.agent_runs ADD COLUMN IF NOT EXISTS model_served VARCHAR;
+ALTER TABLE ops.agent_runs ADD COLUMN IF NOT EXISTS model_calls INTEGER;
 CREATE OR REPLACE VIEW ops.agent_queries AS
 SELECT
     runs.logged_at,

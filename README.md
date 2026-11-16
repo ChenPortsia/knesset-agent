@@ -12,7 +12,7 @@ ops/runlog.py              # agent_runs and agent_steps (data/agent_ops.duckdb),
 tools/db.py                # the published database, read-only, and its data version
 tools/context.py           # get_context(question) -> the context items for a question
 tools/odata.py             # odata_query, odata_fields: the live Knesset API, 11 tables, 50 rows
-tools/sql.py               # run_sql (one SELECT, 200 rows, 30 seconds) and sample_values
+tools/sql.py               # run_sql (one SELECT, 50 rows, 30 seconds) and sample_values
 evals/question_bank.yaml   # questions, each with the items it needs
 evals/eval_context.py      # does get_context find them?
 evals/answer_bank.yaml     # questions with ground-truth SQL, for the answer test
@@ -34,7 +34,7 @@ make context Q="מי המורדים הגדולים בליכוד?"   # the contex
 make eval-context                             # the test on the whole question bank (V=1 for details)
 make eval-truth                               # every ground-truth query in the answer bank runs
 make ask Q="כמה חוקים עברו בכנסת ה-25?"      # ask the agent (needs keys in .env)
-make eval-answers                             # the answer test (about 200 model calls)
+make eval-answers                             # the answer test (about 160 model calls)
 make test lint
 ```
 
@@ -81,11 +81,18 @@ The set-up was picked using this bank, so 100% is the best case. New questions a
 
 1. Code fetches the context for the question and puts it in the first message.
 2. The model works in a loop with its tools: `run_sql`, `sample_values`, `get_context` (for a second, more specific search), and `odata_query` with `odata_fields` (the live Knesset API, only for facts newer than the last load).
-3. It ends with a structured answer: its kind (`answer`, `clarify` or `out_of_scope`), the text in the question's language, the SQL behind it and the context items it used.
+3. Its last message is the answer. The first line says its kind (`answer`, `clarify` or `out_of_scope`); the text follows in the question's language. The run record adds the last query that worked.
 
 Every run is logged to `ops.agent_runs` and `ops.agent_steps` in `data/agent_ops.duckdb`, and traced in Langfuse under the same `trace_id`. The view `ops.agent_queries` lists every SQL and live-API query the agent sent, with the model that sent it, the question and whether it worked: `make queries` shows the latest. The model is the `KNESSET_MODEL` line in `.env`, written `provider:model`; changing provider is changing that line and its key.
 
-`make eval-answers` asks every question in `evals/answer_bank.yaml` and grades the answers against ground truth. One question takes about 5 model calls, so the whole test needs a key with real quota: Gemini's free tier allows 20 requests a day per model.
+`make eval-answers` asks every question in `evals/answer_bank.yaml` and grades the answers against ground truth.
+
+**What a run costs.** Each question is one conversation of about 3 to 4 model calls (one per query, plus the answer), and each call re-reads the whole conversation so far: about 5,000 tokens of prompt and context, plus every query result. Grading adds one short call for each question that has a numeric truth. A full run is roughly 130 answer calls and 30 grading calls. Keep it cheap:
+
+- grade with a cheap model: `KNESSET_JUDGE_MODEL=anthropic:claude-haiku-5-5`
+- after a change, rerun only what failed: `make eval-answers ARGS="--failed"`, or one category: `ARGS="--category votes"`
+- try a change on a few questions first: `ARGS="--limit 5"`
+- with Claude, the prompt is cached between the calls of a question, and query results are capped at 50 rows
 
 ### Result
 

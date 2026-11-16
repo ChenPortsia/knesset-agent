@@ -65,3 +65,11 @@ def test_a_model_name_without_its_provider_is_explained(monkeypatch):
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
     with pytest.raises(SystemExit, match="GOOGLE_API_KEY is not set"):
         load_model("google_genai:gemini-pro-latest")
+
+
+def test_the_final_message_is_split_into_kind_and_text():
+    from agents.sql_analyst import parse_answer
+
+    assert parse_answer("KIND: clarify\nWhich budget vote?") == ("clarify", "Which budget vote?")
+    assert parse_answer("kind: answer\n573") == ("answer", "kind: answer\n573")  # exact form only
+    assert parse_answer("573 laws passed.") == ("answer", "573 laws passed.")  # no line: an answer

@@ -14,14 +14,14 @@ import sys
 import time
 import uuid
 from datetime import date
-from typing import Any, Literal
+from typing import Any
 
 import duckdb
 import httpx
 from dotenv import load_dotenv
 from langchain.agents import create_agent
+from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
 from langchain_core.tools import tool
-from pydantic import BaseModel, Field
 
 from ops import runlog
 from tools import context, odata, sql
@@ -31,7 +31,7 @@ from tools.model import load_model
 load_dotenv()
 logging.getLogger("google_genai.types").setLevel(logging.ERROR)  # noise about tool-call parts
 
-MAX_STEPS = 25  # model turns and tool calls together; a run that needs more is stuck
+MAX_STEPS = 16  # model turns and tool calls together (about 7 queries); more means it is stuck
 
 PROMPT = """\
 You are a data analyst for the Israeli Knesset. You answer questions from a database of
@@ -52,25 +52,37 @@ How to work:
   question is about something after that date, use odata_query (the live Knesset API), and
   say in the answer that it came from the live API. For everything else use run_sql.
 
-How to answer:
-- kind "answer": the question is answered from query results. Give the numbers and say which
+How to finish:
+- Stop as soon as a query has given you what the question asks: most questions need one to
+  three queries. Do not repeat a query or run checks you don't need.
+- Your last message is the answer, with no tool call. Its first line is exactly one of
+  `KIND: answer`, `KIND: clarify` or `KIND: out_of_scope`; the text follows.
+- answer: the question is answered from query results. Give the numbers and say which
   Knesset or dates they cover. Mention a caveat only when a rule in the context says it matters.
-- kind "clarify": the question can be read in clearly different ways (which vote? active by
-  what measure?) and the readings would give different answers. Ask one short question. Do not
+- clarify: the question can be read in clearly different ways (which vote? active by what
+  measure?) and the readings would give different answers. Ask one short question. Do not
   guess, and do not run queries first.
-- kind "out_of_scope": the database cannot answer (before 2015, opinions, what was said in
-  debates, events outside the Knesset). Say what is missing.
-- Write the answer in the language of the question, briefly, with no SQL in the text.
+- out_of_scope: the database cannot answer (before 2015, opinions, what was said in debates,
+  events outside the Knesset). Say what is missing.
+- Write in the language of the question, briefly, with no SQL in the text.
 """
 
 
-class Answer(BaseModel):
-    """The agent's final answer, with its evidence."""
+KINDS = ("answer", "clarify", "out_of_scope")
 
-    kind: Literal["answer", "clarify", "out_of_scope"]
-    text: str = Field(description="The answer, in the language of the question")
-    sql: str | None = Field(default=None, description="The query whose result the answer uses")
-    context_ids: list[str] = Field(default=[], description="Ids of the context items used")
+
+def parse_answer(text: str) -> tuple[str, str]:
+    """Split the final message into its kind and its text. No KIND line means an answer."""
+    first, _, rest = text.strip().partition("\n")
+    kind = first.removeprefix("KIND:").strip().lower()
+    return (
+        (kind, rest.strip())
+        if first.startswith("KIND:") and kind in KINDS
+        else (
+            "answer",
+            text.strip(),
+        )
+    )
 
 
 def make_tools(con: duckdb.DuckDBPyConnection) -> list[Any]:
@@ -85,7 +97,7 @@ def make_tools(con: duckdb.DuckDBPyConnection) -> list[Any]:
     @tool
     def run_sql(query: str) -> str:
         """Run one SELECT on the gold tables (DuckDB SQL; table names without a schema).
-        Returns at most 200 rows as JSON. Aggregate in SQL rather than reading many rows."""
+        Returns at most 50 rows as JSON. Aggregate in SQL rather than reading many rows."""
         try:
             return json.dumps(sql.run_sql(con, query), ensure_ascii=False, default=str)
         except (sql.Refused, duckdb.Error) as error:
@@ -144,7 +156,12 @@ def steps_of(messages: list[Any]) -> list[dict[str, Any]]:
     """Each tool call of a run with its result, in order."""
     results = {m.tool_call_id: m.content for m in messages if m.type == "tool"}
     return [
-        {"tool": call["name"], "input": call["args"], "output": str(results.get(call["id"], ""))}
+        {
+            "tool": call["name"],
+            "input": call["args"],
+            "output": str(results.get(call["id"], "")),
+            "ok": not str(results.get(call["id"], "")).startswith("ERROR:"),
+        }
         for m in messages
         if m.type == "ai"
         for call in m.tool_calls
@@ -170,8 +187,11 @@ def ask(
         "question": question,
     }
     callbacks, run["trace_id"] = runlog.tracing(run)
+    # With Claude, mark the prompt as cacheable: later turns then re-read it at a fraction
+    # of the price instead of paying for it in full every turn
+    caching = [AnthropicPromptCachingMiddleware()] if model.startswith("anthropic:") else []
     agent = create_agent(
-        load_model(model), make_tools(con), system_prompt=PROMPT, response_format=Answer
+        load_model(model), make_tools(con), system_prompt=PROMPT, middleware=caching
     )
     started = time.time()
     steps: list[dict[str, Any]] = []
@@ -187,13 +207,17 @@ def ask(
                 },
             },
         )
-        answer: Answer = state["structured_response"]
+        turns = [m for m in state["messages"] if m.type == "ai"]
         steps = steps_of(state["messages"])
-        usage = [m.usage_metadata or {} for m in state["messages"] if m.type == "ai"]
-        served = [
-            m.response_metadata.get("model_name") for m in state["messages"] if m.type == "ai"
-        ]
-        run |= answer.model_dump() | {
+        usage = [m.usage_metadata or {} for m in turns]
+        served = [m.response_metadata.get("model_name") for m in turns]
+        kind, text = parse_answer(turns[-1].text)
+        worked = [s["input"]["query"] for s in steps if s["tool"] == "run_sql" and s["ok"]]
+        run |= {
+            "kind": kind,
+            "text": text,
+            "sql": worked[-1] if worked and kind == "answer" else None,
+            "model_calls": len(turns),
             "model_served": next((name for name in reversed(served) if name), None),
             "input_tokens": sum(u.get("input_tokens", 0) for u in usage),
             "output_tokens": sum(u.get("output_tokens", 0) for u in usage),
@@ -211,7 +235,7 @@ if __name__ == "__main__":
     if result.get("sql"):
         print(f"SQL:\n{result['sql']}\n")
     print(
-        f"[{result['kind']} | {len(result['steps'])} tool calls | {result['seconds']}s | "
+        f"[{result['kind']} | {result.get('model_calls', 0)} model calls | {result['seconds']}s | "
         f"{result.get('input_tokens', 0)} + {result.get('output_tokens', 0)} tokens | "
         f"data {result['data_version']} | trace {result['trace_id']}]"
     )

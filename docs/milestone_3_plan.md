@@ -29,7 +29,7 @@ are milestones 4 to 7. One agent first: it sets the baseline the team has to bea
    | Tool | Does | Limits |
    | --- | --- | --- |
    | `get_context(question)` | returns the context items for the question | exists |
-   | `run_sql(sql)` | runs one query on gold | one `SELECT` only, gold tables only, 200 rows, 30 seconds, read-only file |
+   | `run_sql(sql)` | runs one query on gold | one `SELECT` only, gold tables only, 50 rows, 30 seconds, read-only file |
    | `sample_values(column, like)` | distinct values of a gold column | to check a name or a code before filtering on it |
    | `odata_query(table, filter)` | reads the live Knesset API | a fixed list of tables, 50 rows, for facts newer than the last load |
 

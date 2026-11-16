@@ -5,6 +5,13 @@ requires-python = ">=3.12"
 dependencies = [
     "duckdb>=1.5,<2",  # the same major version as knesset_data, which writes the file
     "fastembed>=0.9",  # embeds the question with the model the context was indexed with
+    "langchain>=1.5.0",
+    "langchain-anthropic>=1.7.10",
+    "langchain-google-genai>=4.5.0",
+    "langfuse>=5.2.0",
+    "langgraph>=1.2.22",
+    "pydantic>=2.14.3",
+    "python-dotenv>=1.2.4",
     "pyyaml",
 ]
 

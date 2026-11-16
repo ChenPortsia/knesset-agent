@@ -166,6 +166,42 @@ def get_context(
     return [items[id_] for id_ in ids if id_ in items]
 
 
+def render(items: list[dict[str, Any]]) -> str:
+    """The context items as text for the model: short, one block per item, ids kept."""
+    blocks = []
+    for item in items:
+        payload, kind = item["payload"], item["kind"]
+        head = f"[{item['id']}]"
+        if kind == "alias":
+            target = payload["resolves_to"]
+            names = ", ".join(payload["names"])
+            note = f" Note: {payload['note']}" if payload.get("note") else ""
+            blocks.append(f"{head} {names} = {target['column']} IN {target['values']}.{note}")
+        elif kind == "rule":
+            blocks.append(f"{head} {item['title']}: {' '.join(item['text'].split())}")
+        elif kind == "glossary":
+            maps = "; ".join(
+                m["column"] + (f" = {m['value']!r}" if m.get("value") is not None else "")
+                for m in payload.get("maps_to", [])
+            )
+            blocks.append(
+                f"{head} {item['title']} ({item['text_he']}): {' '.join(item['text'].split())}"
+                + (f" In the data: {maps}." if maps else "")
+            )
+        elif kind == "metric":
+            blocks.append(f"{head} {item['title']}: {item['text']} (tables: {payload['tables']})")
+        elif kind == "verified_query":
+            sql = payload["sql"].replace('"warehouse"."gold".', "").strip()
+            blocks.append(f"{head} Verified query for: {item['text']}\n{sql}")
+        elif kind == "table":
+            columns = "\n".join(
+                f"  {c['name']} {c['type']}: {c['text']}" for c in payload["columns"]
+            )
+            joins = "".join(f"\n  join: {j}" for j in payload.get("joins", []))
+            blocks.append(f"{head} {item['text']}\n{columns}{joins}")
+    return "\n\n".join(blocks)
+
+
 if __name__ == "__main__":  # python -m tools.context "<question>"
     import sys
 

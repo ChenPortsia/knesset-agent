@@ -13,7 +13,7 @@ from typing import Any
 
 import duckdb
 
-MAX_ROWS = 200
+MAX_ROWS = 50  # every row is re-read by the model on each later turn, so keep results small
 TIMEOUT_SECONDS = 30
 COLUMN_REF = re.compile(r"^[a-z_0-9]+\.[a-z_0-9]+$")  # table.column
 

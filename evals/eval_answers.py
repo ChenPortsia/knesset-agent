@@ -3,6 +3,11 @@
     python -m evals.eval_answers              (make eval-answers)
     python -m evals.eval_answers --limit 5    a quick try on the first questions
     python -m evals.eval_answers --workers 1  one at a time, for a rate-limited key
+    python -m evals.eval_answers --failed     only the questions the last run got wrong
+    python -m evals.eval_answers --category votes
+
+A full run is about 130 model calls for the answers and 30 for the grading. To keep the cost
+down, grade with a cheap model (KNESSET_JUDGE_MODEL) and rerun only what failed.
 
 Each question is asked, then graded: against its ground-truth result by the judge, or, when
 the right answer is a clarifying question or "the data can't say", by the answer's kind.
@@ -51,7 +56,8 @@ def grade(con: duckdb.DuckDBPyConnection, entry: dict[str, Any]) -> dict[str, An
     print(f"{status} {run['seconds']:>5}s  {entry['question'][:70]}", flush=True)
     return entry | {
         "passed": passed, "reason": reason, "kind": run["kind"], "answer": run["text"],
-        "sql": run.get("sql"), "tool_calls": len(run["steps"]), "seconds": run["seconds"],
+        "sql": run.get("sql"), "model_calls": run.get("model_calls", 0),
+        "seconds": run["seconds"],
         "tokens": run.get("input_tokens", 0) + run.get("output_tokens", 0),
         "trace_id": run["trace_id"],
     }  # fmt: skip
@@ -66,9 +72,21 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run and grade the answer bank")
     parser.add_argument("--limit", type=int, help="only the first N questions")
     parser.add_argument("--workers", type=int, default=3, help="questions asked side by side")
+    parser.add_argument("--category", help="only this category, e.g. votes")
+    parser.add_argument("--failed", action="store_true", help="only what the last run got wrong")
     args = parser.parse_args()
 
-    bank = yaml.safe_load(BANK.read_text(encoding="utf-8"))[: args.limit]
+    bank = yaml.safe_load(BANK.read_text(encoding="utf-8"))
+    if args.category:
+        bank = [e for e in bank if e["category"] == args.category]
+    if args.failed:
+        last = json.loads(sorted(RUNS.glob("*.json"))[-1].read_text())
+        wrong = {r["question"] for r in last if not r["passed"]}
+        bank = [e for e in bank if e["question"] in wrong]
+    bank = bank[: args.limit]
+    if not bank:
+        print("no questions to run")
+        return 0
     con = connect()  # one connection; each question works on its own cursor
     with ThreadPoolExecutor(args.workers) as pool:
         results = list(pool.map(lambda entry: grade(con.cursor(), entry), bank))
@@ -92,7 +110,12 @@ def main() -> int:
     seconds = sum(r["seconds"] for r in results) / len(results)
     tokens = sum(r["tokens"] for r in results)
     print(f"\ntuned on {share(tuned)}   held out {share(held)}   all {share(results)}")
-    print(f"{seconds:.0f}s and {tokens // len(results):,} tokens per question; {tokens:,} in all")
+    calls = sum(r["model_calls"] for r in results)
+    print(
+        f"{seconds:.0f}s, {calls / len(results):.1f} model calls and "
+        f"{tokens // len(results):,} tokens per question; "
+        f"{calls} calls and {tokens:,} tokens in all"
+    )
 
     RUNS.mkdir(parents=True, exist_ok=True)
     path = RUNS / f"{datetime.now():%Y%m%d_%H%M%S}.json"

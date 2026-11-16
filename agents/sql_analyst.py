@@ -16,15 +16,16 @@ from datetime import date
 from typing import Any, Literal
 
 import duckdb
+import httpx
 from dotenv import load_dotenv
 from langchain.agents import create_agent
-from langchain.chat_models import init_chat_model
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
 from ops import runlog
-from tools import context, sql
+from tools import context, odata, sql
 from tools.db import connect, data_version
+from tools.model import load_model
 
 load_dotenv()
 
@@ -45,6 +46,9 @@ How to work:
   other name or code, check its spelling with sample_values before filtering on it.
 - If the context lacks something, call get_context with a more specific question.
 - If a query fails, read the error, fix the query and try again.
+- The database is loaded once a day; the user's message says how far it runs. Only when the
+  question is about something after that date, use odata_query (the live Knesset API), and
+  say in the answer that it came from the live API. For everything else use run_sql.
 
 How to answer:
 - kind "answer": the question is answered from query results. Give the numbers and say which
@@ -96,7 +100,30 @@ def make_tools(con: duckdb.DuckDBPyConnection) -> list[Any]:
         except (sql.Refused, duckdb.Error) as error:
             return f"ERROR: {error}"
 
-    return [get_context, run_sql, sample_values]
+    @tool
+    def odata_query(
+        table: str, filter: str | None = None, orderby: str | None = None, top: int = 20
+    ) -> str:
+        """Read up to 50 rows from the live Knesset API, for facts newer than the data.
+        Tables: KNS_Bill, KNS_PlenumVote, KNS_PlenumSession, KNS_CommitteeSession,
+        KNS_Committee, KNS_Query, KNS_Agenda, KNS_Person, KNS_PersonToPosition, KNS_Faction,
+        KNS_IsraelLaw. `filter` and `orderby` are OData expressions on the API's own column
+        names (see odata_fields), e.g. filter="KnessetNum eq 26", orderby="Id desc"."""
+        try:
+            rows = odata.odata_query(table, filter, orderby, top=top)
+            return json.dumps(rows, ensure_ascii=False, default=str)
+        except (odata.Refused, httpx.HTTPError) as error:
+            return f"ERROR: {error}"
+
+    @tool
+    def odata_fields(table: str) -> str:
+        """The column names of a live API table. Call it before filtering with odata_query."""
+        try:
+            return json.dumps(odata.odata_fields(table))
+        except (odata.Refused, httpx.HTTPError) as error:
+            return f"ERROR: {error}"
+
+    return [get_context, run_sql, sample_values, odata_query, odata_fields]
 
 
 def first_message(con: duckdb.DuckDBPyConnection, question: str) -> str:
@@ -142,7 +169,7 @@ def ask(
     }
     callbacks, run["trace_id"] = runlog.tracing(run)
     agent = create_agent(
-        init_chat_model(model), make_tools(con), system_prompt=PROMPT, response_format=Answer
+        load_model(model), make_tools(con), system_prompt=PROMPT, response_format=Answer
     )
     started = time.time()
     steps: list[dict[str, Any]] = []

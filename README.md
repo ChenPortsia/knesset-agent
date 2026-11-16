@@ -11,6 +11,7 @@ agents/sql_analyst.py      # the agent: prompt, tools, answer structure; ask(que
 ops/runlog.py              # agent_runs and agent_steps (data/agent_ops.duckdb), Langfuse trace ids
 tools/db.py                # the published database, read-only, and its data version
 tools/context.py           # get_context(question) -> the context items for a question
+tools/odata.py             # odata_query, odata_fields: the live Knesset API, 11 tables, 50 rows
 tools/sql.py               # run_sql (one SELECT, 200 rows, 30 seconds) and sample_values
 evals/question_bank.yaml   # questions, each with the items it needs
 evals/eval_context.py      # does get_context find them?
@@ -79,7 +80,7 @@ The set-up was picked using this bank, so 100% is the best case. New questions a
 `make ask` runs one question through the SQL analyst (`agents/sql_analyst.py`):
 
 1. Code fetches the context for the question and puts it in the first message.
-2. The model works in a loop with three tools: `run_sql`, `sample_values` and `get_context` (for a second, more specific search).
+2. The model works in a loop with its tools: `run_sql`, `sample_values`, `get_context` (for a second, more specific search), and `odata_query` with `odata_fields` (the live Knesset API, only for facts newer than the last load).
 3. It ends with a structured answer: its kind (`answer`, `clarify` or `out_of_scope`), the text in the question's language, the SQL behind it and the context items it used.
 
 Every run is logged to `ops.agent_runs` and `ops.agent_steps` in `data/agent_ops.duckdb`, and traced in Langfuse under the same `trace_id`. The model is the `KNESSET_MODEL` line in `.env`, written `provider:model`; changing provider is changing that line and its key.

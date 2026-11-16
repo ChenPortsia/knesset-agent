@@ -95,7 +95,7 @@ knesset-agent/
 | 6 | **The judge**, checked on 20 hand-graded answers | it agrees with the hand grades on at least 18 |
 | 7 | **`make eval-answers`**: run the bank, grade, report by category, with cost and time | built; the baseline waits for a key with quota (the free tier allows 20 requests a day) |
 | 8 | **Improve to 80%**: read the failures; fix context first (a rule, a term, a verified query), the prompt second, tools last | at least 80%, and each fix noted |
-| 9 | **`odata_query`** and 3 to 5 freshness questions | the agent uses it only when the warehouse is too old to answer |
+| 9 | **`odata_query`** and 3 to 5 freshness questions | the tool is built and tested against a made-up API; the freshness questions wait for a model key with quota |
 | 10 | **Cheaper models** on the same test | a table of score, cost and time per model; a default chosen |
 | 11 | **Docs**: README, `ARCHITECTURE.md` | someone new can ask a question and run the test |
 

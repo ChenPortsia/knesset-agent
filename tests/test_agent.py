@@ -43,3 +43,15 @@ def test_a_run_and_its_steps_are_saved_with_shared_ids(tmp_path):
         assert con.execute("SELECT run_id, step, tool FROM ops.agent_steps").fetchall() == [
             ("r1", 1, "run_sql")
         ]
+
+
+def test_a_model_name_without_its_provider_is_explained(monkeypatch):
+    import pytest
+
+    from tools.model import load_model
+
+    with pytest.raises(SystemExit, match="provider:model"):
+        load_model("gemini-pro-latest")
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    with pytest.raises(SystemExit, match="GOOGLE_API_KEY is not set"):
+        load_model("google_genai:gemini-pro-latest")

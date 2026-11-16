@@ -141,6 +141,18 @@ def make_tools(con: duckdb.DuckDBPyConnection) -> list[Any]:
             return f"ERROR: {error}"
 
     @tool
+    def read_around(chunk_id: str) -> str:
+        """Read a passage found by search_protocols together with the passage just before
+        it and the one just after it in the same session. Use it when a passage starts or
+        ends mid-discussion and the answer needs what came before or the reply."""
+        try:
+            return json.dumps(
+                search.read_around(con.cursor(), chunk_id), ensure_ascii=False, default=str
+            )
+        except duckdb.Error as error:
+            return f"ERROR: {error}"
+
+    @tool
     def odata_query(
         table: str, filter: str | None = None, orderby: str | None = None, top: int = 20
     ) -> str:
@@ -163,7 +175,10 @@ def make_tools(con: duckdb.DuckDBPyConnection) -> list[Any]:
         except (odata.Refused, httpx.HTTPError) as error:
             return f"ERROR: {error}"
 
-    return [get_context, run_sql, sample_values, search_protocols, odata_query, odata_fields]
+    return [
+        get_context, run_sql, sample_values, search_protocols, read_around, odata_query,
+        odata_fields,
+    ]  # fmt: skip
 
 
 def first_message(con: duckdb.DuckDBPyConnection, question: str) -> str:

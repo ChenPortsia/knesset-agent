@@ -116,3 +116,33 @@ def search_protocols(
     )  # fmt: skip
     columns = [c[0] for c in cursor.description]
     return [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
+
+
+AROUND = """
+    SELECT
+        chunks.chunk_id, chunks.committee_session_id, chunks.position, committees.committee_name,
+        CAST(chunks.session_date AS VARCHAR) AS session_date, chunks.speakers, chunks.chunk_text
+    FROM rag.chunks AS chunks
+    INNER JOIN rag.chunks AS found
+        ON chunks.committee_session_id = found.committee_session_id
+        AND chunks.position BETWEEN found.position - $before AND found.position + $after
+    INNER JOIN gold.dim_committee AS committees
+        ON chunks.committee_id = committees.committee_id
+    WHERE found.chunk_id = $chunk_id
+    ORDER BY chunks.position
+"""
+
+
+def read_around(
+    con: duckdb.DuckDBPyConnection, chunk_id: str, before: int = 1, after: int = 1
+) -> list[dict[str, Any]]:
+    """A passage with the ones just before and after it in the same session, in order.
+
+    A search result is about 200 words cut out of a discussion; this gives what led to it
+    and what was answered.
+    """
+    cursor = con.execute(
+        AROUND, {"chunk_id": chunk_id, "before": min(before, 3), "after": min(after, 3)}
+    )
+    columns = [c[0] for c in cursor.description]
+    return [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]

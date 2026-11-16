@@ -8,6 +8,7 @@ put in the first message, so the agent never works without it.
 """
 
 import json
+import logging
 import os
 import sys
 import time
@@ -28,6 +29,7 @@ from tools.db import connect, data_version
 from tools.model import load_model
 
 load_dotenv()
+logging.getLogger("google_genai.types").setLevel(logging.ERROR)  # noise about tool-call parts
 
 MAX_STEPS = 25  # model turns and tool calls together; a run that needs more is stuck
 
@@ -188,7 +190,11 @@ def ask(
         answer: Answer = state["structured_response"]
         steps = steps_of(state["messages"])
         usage = [m.usage_metadata or {} for m in state["messages"] if m.type == "ai"]
+        served = [
+            m.response_metadata.get("model_name") for m in state["messages"] if m.type == "ai"
+        ]
         run |= answer.model_dump() | {
+            "model_served": next((name for name in reversed(served) if name), None),
             "input_tokens": sum(u.get("input_tokens", 0) for u in usage),
             "output_tokens": sum(u.get("output_tokens", 0) for u in usage),
         }

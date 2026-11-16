@@ -1,10 +1,13 @@
 # Reads the database published by knesset_data (../knesset_data/data/published/knesset.duckdb,
 # or set KNESSET_DATABASE). Run `make context publish` there first.
 
-.PHONY: ask context eval-context eval-truth eval-answers test lint
+.PHONY: ask queries context eval-context eval-truth eval-answers test lint
 
 ask:  ## Ask the agent a question, e.g. make ask Q="כמה חוקים עברו בכנסת ה-25?"
 	uv run python -W ignore -m agents.sql_analyst "$(Q)"
+
+queries:  ## The last 30 queries the agent sent: when, which model, whether it worked
+	uv run python -m ops.runlog
 
 context:  ## Show the context a question gets, e.g. make context Q="מי המורדים בליכוד?"
 	uv run python -m tools.context "$(Q)"

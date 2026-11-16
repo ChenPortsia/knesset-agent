@@ -90,7 +90,8 @@ def save(run: dict[str, Any], steps: list[dict[str, Any]], ops: Path = OPS) -> N
 
 
 if __name__ == "__main__":  # make queries
-    with duckdb.connect(str(OPS), read_only=True) as con:
+    with duckdb.connect(str(OPS)) as con:
+        con.execute(DDL)  # a file from before the view existed gets it here
         con.sql(
             """
             SELECT logged_at, COALESCE(model_served, model) AS model, tool, worked,

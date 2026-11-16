@@ -46,6 +46,9 @@ def grade(con: duckdb.DuckDBPyConnection, entry: dict[str, Any]) -> dict[str, An
             passed, reason = verdict.passed, verdict.reason
         except Exception as error:
             passed, reason = False, f"judge failed: {type(error).__name__}: {error}"
+    # Progress as each question finishes; a held-out question doesn't show how it went
+    status = "held" if entry.get("holdout") else "pass" if passed else "FAIL"
+    print(f"{status} {run['seconds']:>5}s  {entry['question'][:70]}", flush=True)
     return entry | {
         "passed": passed, "reason": reason, "kind": run["kind"], "answer": run["text"],
         "sql": run.get("sql"), "tool_calls": len(run["steps"]), "seconds": run["seconds"],

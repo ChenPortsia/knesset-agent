@@ -19,4 +19,5 @@ def load_model(name: str | None = None) -> Any:
         )
     if not os.environ.get(PROVIDERS[provider]):
         raise SystemExit(f"{PROVIDERS[provider]} is not set in .env; {name} needs it.")
-    return init_chat_model(name)
+    # A stuck call fails after two minutes instead of waiting on the provider's own long retries
+    return init_chat_model(name, timeout=120, max_retries=2)

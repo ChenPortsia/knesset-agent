@@ -151,7 +151,7 @@ Search only, questions as asked (13 Hebrew, 14 English), right passage in the to
 | Keywords only | 10/27 | 9/13 | 1/14 |
 | Meaning only (`potion`) | 6/27 | 3/13 | 3/14 |
 
-Keyword search finds Hebrew questions well and English ones not at all; `potion` is weak at meaning in both. Merged equally, the weak ranking pulled good keyword hits down, so keywords now count four times as much (`KEYWORD_WEIGHT` in `tools/search.py`).
+Keyword search finds Hebrew questions well and English ones not at all; `potion` is weak at meaning in both. Merged equally, the weak ranking pulled good keyword hits down, so with this model keywords count four times as much. The weight is stored with the vectors (`rag.build.keyword_weight`) and is 1 for the large model.
 
 With the English questions rewritten as Hebrew queries by hand, keywords alone found 22 of 27. Those rewrites were written by someone who had seen the passages, so the fair number is the one `make eval-text` gives, where the model writes the query. A trial on 4 questions found all 4 passages and gave 4 correct, faithful answers.
 

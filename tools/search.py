@@ -2,8 +2,10 @@
 
 Searches the protocol chunks that knesset_data publishes (the `rag` schema): runs of
 consecutive speaker turns of about 200 words, each with its committee, date and speakers.
-Two rankings are merged: by keywords (BM25) and by meaning (embeddings), with keywords
-counting more. Keyword search only matches Hebrew words, so queries should be in Hebrew.
+Two rankings are merged: by keywords (BM25) and by meaning (embeddings). How much more a
+keyword match counts depends on the embedding model and is stored with the vectors
+(rag.build.keyword_weight): 1 for a model that is good at meaning, more for a weak one.
+Keyword search only matches Hebrew words, so queries should be in Hebrew.
 Filters narrow the chunks before ranking.
 """
 
@@ -15,10 +17,6 @@ from typing import Any
 import duckdb
 
 MAX_RESULTS = 10
-# How much more a keyword match counts than a match by meaning. Measured on the text bank
-# (evals/): with the fast embedding model, meaning alone finds the passage for 6 of 27
-# questions and keywords for 22, so an equal merge dragged good keyword hits down.
-KEYWORD_WEIGHT = 4
 
 Embed = Callable[[duckdb.DuckDBPyConnection, str], list[float]]
 
@@ -107,8 +105,9 @@ def search_protocols(
     the chunk (dim_person.person_id), and a range of session dates.
     """
     vector = embed(con, query)
+    keyword_weight = con.execute("SELECT keyword_weight FROM rag.build").fetchone()[0]
     cursor = con.execute(
-        SEARCH.format(size=len(vector), keyword_weight=KEYWORD_WEIGHT),
+        SEARCH.format(size=len(vector), keyword_weight=keyword_weight),
         {
             "query": query, "vector": vector, "category_id": committee_category_id,
             "person_id": person_id, "date_from": date_from, "date_to": date_to,

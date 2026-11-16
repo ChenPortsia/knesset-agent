@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
 from tools.db import connect
-from tools.model import load_model
+from tools.model import judge_model, load_model, structured
 from tools.search import search_protocols
 
 load_dotenv()
@@ -116,17 +116,15 @@ def main() -> int:
         if not args.retrieval_only:
             shown = "\n\n".join(p["chunk_text"] for p in passages)
             answer = load_model().invoke(ANSWER.format(question=entry["question"], passages=shown))
-            grade = (
-                load_model(None)
-                .with_structured_output(Grade)
-                .invoke(
-                    GRADE.format(
-                        question=entry["question"], reference=entry["reference"],
-                        passages=shown, answer=answer.text,
-                    )
-                )
+            prompt = GRADE.format(
+                question=entry["question"], reference=entry["reference"],
+                passages=shown, answer=answer.text,
             )  # fmt: skip
-            result |= {"answer": answer.text} | grade.model_dump()
+            try:
+                grade = structured(judge_model(), Grade).invoke(prompt).model_dump()
+            except Exception as error:  # one failed grading must not lose the whole run
+                grade = {"reason": f"not graded: {error}"[:200], "correct": None, "faithful": None}
+            result |= {"answer": answer.text} | grade
         results.append(result)
         marks = (
             ""
@@ -143,9 +141,12 @@ def main() -> int:
         print(f"  right passage in the top {k}: {hits}/{n} ({hits / n:.0%})")
     print(f"  mean reciprocal rank: {sum(1 / rank for rank in ranks if rank) / n:.2f}")
     if not args.retrieval_only:
+        graded = [r for r in results if r["correct"] is not None]
         for name in ("correct", "faithful"):
-            count = sum(r[name] for r in results)
-            print(f"  answers {name}: {count}/{n} ({count / n:.0%})")
+            count = sum(r[name] for r in graded)
+            print(f"  answers {name}: {count}/{len(graded)} ({count / len(graded):.0%})")
+        if len(graded) < n:
+            print(f"  {n - len(graded)} answers could not be graded")
         RUNS.mkdir(parents=True, exist_ok=True)
         path = RUNS / f"text_{datetime.now():%Y%m%d_%H%M%S}.json"
         path.write_text(json.dumps(results, ensure_ascii=False, indent=2, default=str))

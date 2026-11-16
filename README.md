@@ -155,6 +155,16 @@ Keyword search finds Hebrew questions well and English ones not at all; `potion`
 
 With the English questions rewritten as Hebrew queries by hand, keywords alone found 22 of 27. Those rewrites were written by someone who had seen the passages, so the fair number is the one `make eval-text` gives, where the model writes the query. A trial on 4 questions found all 4 passages and gave 4 correct, faithful answers.
 
+First full run, on `claude-sonnet-5-5`, with the model writing the Hebrew queries. It graded 26 of the 27 questions before the grader crashed on the last one (fixed since):
+
+| Measure | Result |
+| --- | --- |
+| Right passage in the top 6 | 17/26 (65%) |
+| Answers correct | 19/26 (73%) |
+| Answers faithful | 23/26 (88%) |
+
+Two answers were correct without the labelled passage: another passage of the same debate held the answer.
+
 ### What a strong embedding model would add
 
 The same questions on a reduced set of 1,312 chunks (the labelled passages plus a random tenth of the rest, so every number is easier than on the full pilot), questions as asked:

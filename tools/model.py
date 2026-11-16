@@ -21,3 +21,14 @@ def load_model(name: str | None = None) -> Any:
         raise SystemExit(f"{PROVIDERS[provider]} is not set in .env; {name} needs it.")
     # A stuck call fails after two minutes instead of waiting on the provider's own long retries
     return init_chat_model(name, timeout=120, max_retries=2)
+
+
+def judge_model() -> Any:
+    """The model that grades in the tests: KNESSET_JUDGE_MODEL, or the answering model."""
+    return load_model(os.environ.get("KNESSET_JUDGE_MODEL") or None)
+
+
+def structured(model: Any, schema: type) -> Any:
+    """The model returning `schema`, through the provider's own structured output.
+    (The default, a forced tool call, is refused by newer Claude models.)"""
+    return model.with_structured_output(schema, method="json_schema")

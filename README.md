@@ -83,6 +83,6 @@ The set-up was picked using this bank, so 100% is the best case. New questions a
 2. The model works in a loop with its tools: `run_sql`, `sample_values`, `get_context` (for a second, more specific search), and `odata_query` with `odata_fields` (the live Knesset API, only for facts newer than the last load).
 3. It ends with a structured answer: its kind (`answer`, `clarify` or `out_of_scope`), the text in the question's language, the SQL behind it and the context items it used.
 
-Every run is logged to `ops.agent_runs` and `ops.agent_steps` in `data/agent_ops.duckdb`, and traced in Langfuse under the same `trace_id`. The model is the `KNESSET_MODEL` line in `.env`, written `provider:model`; changing provider is changing that line and its key.
+Every run is logged to `ops.agent_runs` and `ops.agent_steps` in `data/agent_ops.duckdb`, and traced in Langfuse under the same `trace_id`. The view `ops.agent_queries` lists every SQL and live-API query the agent sent, with the model that sent it, the question and whether it worked: `make queries` shows the latest. The model is the `KNESSET_MODEL` line in `.env`, written `provider:model`; changing provider is changing that line and its key.
 
 `make eval-answers` asks every question in `evals/answer_bank.yaml` and grades the answers against ground truth. One question takes about 5 model calls, so the whole test needs a key with real quota: Gemini's free tier allows 20 requests a day per model.

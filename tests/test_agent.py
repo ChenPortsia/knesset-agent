@@ -29,19 +29,29 @@ def test_render_keeps_ids_and_what_the_model_needs():
 def test_a_run_and_its_steps_are_saved_with_shared_ids(tmp_path):
     run = {
         "run_id": "r1", "trace_id": "t1", "session_id": "s1", "user_id": "u1",
-        "data_version": "2026-11-15T00:00:00Z", "model": "fake:model", "question": "?",
+        "data_version": "2026-11-15T00:00:00Z", "model": "fake:latest", "question": "?",
+        "model_served": "fake-1.0",
         "kind": "answer", "text": "42", "sql": "SELECT 42", "context_ids": ["table.dim_bill"],
         "input_tokens": 10, "output_tokens": 2, "seconds": 1.5,
     }  # fmt: skip
-    steps = [{"tool": "run_sql", "input": {"query": "SELECT 42"}, "output": "[[42]]"}]
+    steps = [
+        {"tool": "run_sql", "input": {"query": "SELECT 42"}, "output": "[[42]]"},
+        {"tool": "run_sql", "input": {"query": "SELECT x"}, "output": "ERROR: no column x"},
+        {"tool": "sample_values", "input": {"column": "dim_bill.origin"}, "output": "[]"},
+    ]
     runlog.save(run, steps, tmp_path / "agent_ops.duckdb")
 
     with duckdb.connect(str(tmp_path / "agent_ops.duckdb")) as con:
         assert con.execute(
             "SELECT trace_id, data_version, kind, context_ids FROM ops.agent_runs"
         ).fetchall() == [("t1", "2026-11-15T00:00:00Z", "answer", ["table.dim_bill"])]
-        assert con.execute("SELECT run_id, step, tool FROM ops.agent_steps").fetchall() == [
-            ("r1", 1, "run_sql")
+        assert con.execute("SELECT COUNT(*) FROM ops.agent_steps").fetchone() == (3,)
+        # every query sent, with the model that sent it and whether it worked
+        assert con.execute(
+            "SELECT model, model_served, query, worked FROM ops.agent_queries ORDER BY step"
+        ).fetchall() == [
+            ("fake:latest", "fake-1.0", "SELECT 42", True),
+            ("fake:latest", "fake-1.0", "SELECT x", False),
         ]
 
 
